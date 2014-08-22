@@ -1,0 +1,7 @@
+.settings
+.gradle
+.classpath
+.project
+bin
+bin/rejfree
+bin/rejfree/Main.class
