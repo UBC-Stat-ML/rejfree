@@ -6,7 +6,6 @@ import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.commons.math3.analysis.solvers.PegasusSolver;
 import org.jblas.DoubleMatrix;
 
-import bayonet.opt.BacktrackingLineSearcher;
 import bayonet.opt.DifferentiableFunction;
 import bayonet.opt.LBFGSMinimizer;
 
@@ -19,11 +18,14 @@ public class SimpleRFSampler
    */
   private final DifferentiableFunction energy;
   
-  private final BacktrackingLineSearcher searcher = new BacktrackingLineSearcher();
   private final PegasusSolver solver = new PegasusSolver();
   
   private DoubleMatrix currentPosition, currentVelocity;
   
+  /**
+   * 
+   * @param energy The negative log density of the target, assumed to be convex
+   */
   public SimpleRFSampler(DifferentiableFunction energy)
   {
     this.energy = energy;
@@ -62,7 +64,7 @@ public class SimpleRFSampler
   private double collisionTime(final DoubleMatrix initialPoint, final DoubleMatrix velocity, final double uniform)
   {
     // go to minimum energy for free
-    final DoubleMatrix directionalMin = new DoubleMatrix(searcher.minimize(energy, initialPoint.data, velocity.data));
+    final DoubleMatrix directionalMin = lineMinimize(initialPoint, velocity);//new DoubleMatrix(searcher.minimize(energy, initialPoint.data, velocity.data));
     final double time1 = time(initialPoint, directionalMin, velocity);
     
     // keep moving until an exponentially distributed amount of energy is exhausted
@@ -87,6 +89,45 @@ public class SimpleRFSampler
     return time1 + time2;
   }
   
+  private DoubleMatrix lineMinimize(
+      final DoubleMatrix initialPoint,
+      final DoubleMatrix velocity)
+  {
+    DifferentiableFunction lineRestricted = new DifferentiableFunction() {
+      
+      @Override
+      public double valueAt(double[] _time)
+      {
+        double time = _time[0];
+        double [] position = position(initialPoint, velocity, time).data;
+        return energy.valueAt(position);
+      }
+      
+      @Override
+      public int dimension()
+      {
+        return 1;
+      }
+      
+      @Override
+      public double[] derivativeAt(double[] _time)
+      {
+        double time = _time[0];
+        double [] position = position(initialPoint, velocity, time).data;
+        DoubleMatrix fullDerivative = new DoubleMatrix(energy.derivativeAt(position));
+        double directionalDeriv = fullDerivative.dot(velocity);
+        return new double[]{directionalDeriv};
+      }
+    };
+    
+    double minTime = new LBFGSMinimizer().minimize(lineRestricted, new double[]{0}, 1e-10)[0];
+    
+    if (minTime < 0.0)
+      minTime = 0.0;
+    
+    return position(initialPoint, velocity, minTime);
+  }
+
   private double time(DoubleMatrix initialPos, DoubleMatrix finalPosition, DoubleMatrix velocity)
   {
     final double 
