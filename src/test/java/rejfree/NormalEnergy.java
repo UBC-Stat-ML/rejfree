@@ -1,6 +1,7 @@
 package rejfree;
 
 import org.jblas.DoubleMatrix;
+import org.jblas.Solve;
 
 import bayonet.opt.DifferentiableFunction;
 
@@ -14,6 +15,11 @@ public class NormalEnergy implements DifferentiableFunction
   {
     DoubleMatrix precision = DoubleMatrix.eye(dim);
     return new NormalEnergy(precision);
+  }
+  
+  public static NormalEnergy withCovariance(DoubleMatrix covar)
+  {
+    return new NormalEnergy(Solve.pinv(covar));
   }
   
   private NormalEnergy(DoubleMatrix precisionMatrix)

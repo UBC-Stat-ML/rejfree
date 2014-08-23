@@ -1,0 +1,14 @@
+pdf('@{getOutput()}')
+    
+x0  <- @{javaDoublesToRVector(x0)}
+y0  <- @{javaDoublesToRVector(y0)}
+x1  <- @{javaDoublesToRVector(x1)}
+y1  <- @{javaDoublesToRVector(y1)}
+
+xBounds <- @{javaDoublesToRVector(xBounds)}
+yBounds <- @{javaDoublesToRVector(yBounds)}
+
+plot(xBounds, yBounds)
+arrows(x0, y0, x1, y1, code=2)
+
+dev.off()

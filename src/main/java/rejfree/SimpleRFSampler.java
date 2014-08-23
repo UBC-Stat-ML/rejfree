@@ -1,11 +1,15 @@
 package rejfree;
 
+import java.util.List;
 import java.util.Random;
 
 import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.commons.math3.analysis.solvers.PegasusSolver;
 import org.jblas.DoubleMatrix;
 
+import com.google.common.collect.Lists;
+
+import bayonet.distributions.Exponential;
 import bayonet.opt.DifferentiableFunction;
 import bayonet.opt.LBFGSMinimizer;
 
@@ -21,6 +25,11 @@ public class SimpleRFSampler
   private final PegasusSolver solver = new PegasusSolver();
   
   private DoubleMatrix currentPosition, currentVelocity;
+  private List<DoubleMatrix> trajectory = Lists.newArrayList();
+
+  private double refreshRate = 0.01;
+  
+  
   
   /**
    * 
@@ -30,6 +39,7 @@ public class SimpleRFSampler
   {
     this.energy = energy;
     this.currentPosition = initialPosition(energy);
+    trajectory.add(currentPosition);
     this.currentVelocity = initialVelocity(energy.dimension());
   }
   
@@ -51,8 +61,14 @@ public class SimpleRFSampler
     for (int iter = 0; iter < numberOfIterations; iter++)
     {
       final double collisionTime = collisionTime(currentPosition, currentVelocity, rand.nextDouble());
-      currentPosition = position(currentPosition, currentVelocity, collisionTime);
-      currentVelocity = Bouncer.bounce(currentVelocity, gradient(currentPosition));
+      final double refreshTime = Exponential.generate(rand, refreshRate );
+      boolean collisionOccurs = collisionTime < refreshTime;
+      currentPosition = position(currentPosition, currentVelocity, Math.min(collisionTime, refreshTime));
+      trajectory.add(currentPosition);
+      if (collisionOccurs)
+        currentVelocity = Bouncer.bounce(currentVelocity, gradient(currentPosition));
+      else
+        currentVelocity = initialVelocity(currentVelocity.length);
     }
   }
 
@@ -154,5 +170,30 @@ public class SimpleRFSampler
         result *= 2.0;
     }
     throw new RuntimeException();
+  }
+
+  public List<DoubleMatrix> getTrajectory()
+  {
+    return trajectory;
+  }
+
+  public DoubleMatrix getCurrentPosition()
+  {
+    return currentPosition;
+  }
+
+  public void setCurrentPosition(DoubleMatrix currentPosition)
+  {
+    this.currentPosition = currentPosition;
+  }
+
+  public DoubleMatrix getCurrentVelocity()
+  {
+    return currentVelocity;
+  }
+
+  public void setCurrentVelocity(DoubleMatrix currentVelocity)
+  {
+    this.currentVelocity = currentVelocity;
   }
 }
