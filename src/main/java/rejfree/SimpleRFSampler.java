@@ -5,6 +5,7 @@ import java.util.Random;
 
 import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.commons.math3.analysis.solvers.PegasusSolver;
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
 
 import com.google.common.collect.Lists;
@@ -12,6 +13,7 @@ import com.google.common.collect.Lists;
 import bayonet.distributions.Exponential;
 import bayonet.opt.DifferentiableFunction;
 import bayonet.opt.LBFGSMinimizer;
+import briefj.opt.Option;
 
 
 
@@ -24,12 +26,17 @@ public class SimpleRFSampler
   
   private final PegasusSolver solver = new PegasusSolver();
   
-  private DoubleMatrix currentPosition, currentVelocity;
   private List<DoubleMatrix> trajectory = Lists.newArrayList();
+  private List<DoubleMatrix> samples = Lists.newArrayList();
 
-  private double refreshRate = 0.01;
+  @Option
+  public double refreshRate = 0.001;
   
+  @Option
+  private double collectRate = 5.0;
   
+  private SummaryStatistics collisionToRefreshmentRatio = new SummaryStatistics();
+  private SummaryStatistics collectedPerEvent = new SummaryStatistics();
   
   /**
    * 
@@ -38,9 +45,6 @@ public class SimpleRFSampler
   public SimpleRFSampler(DifferentiableFunction energy)
   {
     this.energy = energy;
-    this.currentPosition = initialPosition(energy);
-    trajectory.add(currentPosition);
-    this.currentVelocity = initialVelocity(energy.dimension());
   }
   
   private DoubleMatrix initialVelocity(int dimension)
@@ -58,18 +62,45 @@ public class SimpleRFSampler
 
   public void iterate(Random rand, int numberOfIterations)
   {
+    DoubleMatrix
+      currentPosition = initialPosition(energy),
+      currentVelocity = initialVelocity(energy.dimension());
+    trajectory.add(currentPosition);
+    
     for (int iter = 0; iter < numberOfIterations; iter++)
     {
-      final double collisionTime = collisionTime(currentPosition, currentVelocity, rand.nextDouble());
-      final double refreshTime = Exponential.generate(rand, refreshRate );
+      // simulate event
+      double collisionTime = collisionTime(currentPosition, currentVelocity, rand.nextDouble());
+      double refreshTime = Exponential.generate(rand, refreshRate);
+      double eventTime = Math.min(collisionTime, refreshTime);
+      collisionToRefreshmentRatio.addValue(collisionTime/refreshTime);
+      
+      // collect state
+      collectSamples(currentPosition, currentVelocity, eventTime, rand);
+      
+      // update state
       boolean collisionOccurs = collisionTime < refreshTime;
-      currentPosition = position(currentPosition, currentVelocity, Math.min(collisionTime, refreshTime));
+      currentPosition = position(currentPosition, currentVelocity, eventTime);
       trajectory.add(currentPosition);
       if (collisionOccurs)
         currentVelocity = Bouncer.bounce(currentVelocity, gradient(currentPosition));
       else
         currentVelocity = initialVelocity(currentVelocity.length);
     }
+  }
+
+  private void collectSamples(DoubleMatrix initialPosition,
+      DoubleMatrix velocity, double eventTime, Random rand)
+  {
+    double timeConsumed = Exponential.generate(rand, collectRate);
+    int nCollected = 0;
+    while (timeConsumed < eventTime)
+    {
+      nCollected++;
+      samples.add(position(initialPosition, velocity, timeConsumed));
+      timeConsumed += Exponential.generate(rand, collectRate);
+    }
+    collectedPerEvent.addValue(nCollected);
   }
 
   private DoubleMatrix gradient(DoubleMatrix position)
@@ -177,23 +208,18 @@ public class SimpleRFSampler
     return trajectory;
   }
 
-  public DoubleMatrix getCurrentPosition()
+  public SummaryStatistics getCollisionToRefreshmentRatio()
   {
-    return currentPosition;
+    return collisionToRefreshmentRatio;
   }
 
-  public void setCurrentPosition(DoubleMatrix currentPosition)
+  public List<DoubleMatrix> getSamples()
   {
-    this.currentPosition = currentPosition;
+    return samples;
   }
 
-  public DoubleMatrix getCurrentVelocity()
+  public SummaryStatistics getCollectedPerEvent()
   {
-    return currentVelocity;
-  }
-
-  public void setCurrentVelocity(DoubleMatrix currentVelocity)
-  {
-    this.currentVelocity = currentVelocity;
+    return collectedPerEvent;
   }
 }
