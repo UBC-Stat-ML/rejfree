@@ -44,11 +44,20 @@ public class NormalExample implements Runnable
   
   @OptionSet(name = "rf")
   public SimpleRFSamplerOptions samplerOptions = new SimpleRFSamplerOptions();
+  
+  @Option
+  public double var1 = 1.0;
+  
+  @Option
+  public double var2 = 1.0;
+  
+  @Option
+  public double cor = 0.0;
 
   @Override
   public void run()
   {
-    DoubleMatrix covar = new DoubleMatrix(new double[][]{{1,0},{0,10}});
+    DoubleMatrix covar = new DoubleMatrix(new double[][]{{var1,cor},{cor,var2}});
     NormalEnergy energy = NormalEnergy.
       withCovariance(covar); 
       //isotropic(2);
