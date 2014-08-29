@@ -24,16 +24,23 @@ public class SimpleRFSampler
    */
   private final DifferentiableFunction energy;
   
+  private final SimpleRFSamplerOptions options;
+  
   private final PegasusSolver solver = new PegasusSolver();
   
   private List<DoubleMatrix> trajectory = Lists.newArrayList();
   private List<DoubleMatrix> samples = Lists.newArrayList();
-
-  @Option
-  public double refreshRate = 0.001;
   
-  @Option
-  private double collectRate = 5.0;
+  private DoubleMatrix lastPosition, lastVelocity;
+
+  public static class SimpleRFSamplerOptions
+  {
+    @Option
+    public double refreshRate = 0.0001;
+    
+    @Option
+    public double collectRate = 1.0;
+  }
   
   private SummaryStatistics collisionToRefreshmentRatio = new SummaryStatistics();
   private SummaryStatistics collectedPerEvent = new SummaryStatistics();
@@ -42,9 +49,10 @@ public class SimpleRFSampler
    * 
    * @param energy The negative log density of the target, assumed to be convex
    */
-  public SimpleRFSampler(DifferentiableFunction energy)
+  public SimpleRFSampler(DifferentiableFunction energy, SimpleRFSamplerOptions options)
   {
     this.energy = energy;
+    this.options = options;
   }
   
   private DoubleMatrix initialVelocity(int dimension)
@@ -71,7 +79,7 @@ public class SimpleRFSampler
     {
       // simulate event
       double collisionTime = collisionTime(currentPosition, currentVelocity, rand.nextDouble());
-      double refreshTime = Exponential.generate(rand, refreshRate);
+      double refreshTime = Exponential.generate(rand, options.refreshRate);
       double eventTime = Math.min(collisionTime, refreshTime);
       collisionToRefreshmentRatio.addValue(collisionTime/refreshTime);
       
@@ -92,13 +100,13 @@ public class SimpleRFSampler
   private void collectSamples(DoubleMatrix initialPosition,
       DoubleMatrix velocity, double eventTime, Random rand)
   {
-    double timeConsumed = Exponential.generate(rand, collectRate);
+    double timeConsumed = Exponential.generate(rand, options.collectRate);
     int nCollected = 0;
     while (timeConsumed < eventTime)
     {
       nCollected++;
       samples.add(position(initialPosition, velocity, timeConsumed));
-      timeConsumed += Exponential.generate(rand, collectRate);
+      timeConsumed += Exponential.generate(rand, options.collectRate);
     }
     collectedPerEvent.addValue(nCollected);
   }
@@ -221,5 +229,26 @@ public class SimpleRFSampler
   public SummaryStatistics getCollectedPerEvent()
   {
     return collectedPerEvent;
+  }
+
+  /**
+   */
+  public DoubleMatrix getLastPosition()
+  {
+    return lastPosition;
+  }
+
+  /**
+   * 
+   * @return velocity after update at the end of last event
+   */
+  public DoubleMatrix getLastVelocity()
+  {
+    return lastVelocity;
+  }
+  
+  public int dimensionality()
+  {
+    return energy.dimension();
   }
 }
