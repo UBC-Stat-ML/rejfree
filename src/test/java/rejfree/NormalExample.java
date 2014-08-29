@@ -12,7 +12,6 @@ import rejfree.SimpleRFSampler.SimpleRFSamplerOptions;
 import com.google.common.collect.Lists;
 
 import bayonet.coda.EffectiveSize;
-import bayonet.math.AutoCorrTime;
 import bayonet.rplot.PlotHistogram;
 import blang.MCMCFactory.MCMCOptions;
 import blang.processing.ProcessorContext;
@@ -40,7 +39,7 @@ public class NormalExample implements Runnable
   public int nIterations = 10000;
   
   @Option
-  public int maxTrajectoryToPlot = 1000;
+  public int maxTrajectoryToPlot = 500;
   
   @OptionSet(name = "rf")
   public SimpleRFSamplerOptions samplerOptions = new SimpleRFSamplerOptions();
@@ -52,12 +51,12 @@ public class NormalExample implements Runnable
   public double var2 = 1.0;
   
   @Option
-  public double cor = 0.0;
+  public double cov = 0.7;
 
   @Override
   public void run()
   {
-    DoubleMatrix covar = new DoubleMatrix(new double[][]{{var1,cor},{cor,var2}});
+    DoubleMatrix covar = new DoubleMatrix(new double[][]{{var1,cov},{cov,var2}});
     NormalEnergy energy = NormalEnergy.
       withCovariance(covar); 
       //isotropic(2);
