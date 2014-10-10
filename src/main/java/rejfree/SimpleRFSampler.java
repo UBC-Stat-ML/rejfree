@@ -11,6 +11,7 @@ import org.jblas.DoubleMatrix;
 import com.google.common.collect.Lists;
 
 import bayonet.distributions.Exponential;
+import bayonet.math.NumericalUtils;
 import bayonet.opt.DifferentiableFunction;
 import bayonet.opt.LBFGSMinimizer;
 import briefj.opt.Option;
@@ -31,7 +32,7 @@ public class SimpleRFSampler
   private List<DoubleMatrix> trajectory = Lists.newArrayList();
   private List<DoubleMatrix> samples = Lists.newArrayList();
   
-  private DoubleMatrix lastPosition, lastVelocity;
+  private DoubleMatrix currentPosition, currentVelocity;
 
   public static class SimpleRFSamplerOptions
   {
@@ -49,10 +50,27 @@ public class SimpleRFSampler
    * 
    * @param energy The negative log density of the target, assumed to be convex
    */
-  public SimpleRFSampler(DifferentiableFunction energy, SimpleRFSamplerOptions options)
+  public SimpleRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition, SimpleRFSamplerOptions options)
   {
     this.energy = energy;
     this.options = options;
+    this.currentPosition = initialPosition;
+    this.currentVelocity = initialVelocity(energy.dimension());
+  }
+  
+  public SimpleRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition)
+  {
+    this(energy, initialPosition, new SimpleRFSamplerOptions());
+  }
+  
+  public static SimpleRFSampler initializeRFWithLBFGS(DifferentiableFunction energy, SimpleRFSamplerOptions options)
+  {
+    return new SimpleRFSampler(energy, optimizePosition(energy), options);
+  }
+  
+  public static SimpleRFSampler initializeRFWithLBFGS(DifferentiableFunction energy)
+  {
+    return initializeRFWithLBFGS(energy, new SimpleRFSamplerOptions());
   }
   
   private DoubleMatrix initialVelocity(int dimension)
@@ -62,7 +80,7 @@ public class SimpleRFSampler
     return random.muli(1.0/norm);
   }
 
-  private static DoubleMatrix initialPosition(DifferentiableFunction energy)
+  private static DoubleMatrix optimizePosition(DifferentiableFunction energy)
   {
     double [] min = new LBFGSMinimizer().minimize(energy, new DoubleMatrix(energy.dimension()).data, 1e-2);
     return new DoubleMatrix(min);
@@ -70,9 +88,7 @@ public class SimpleRFSampler
 
   public void iterate(Random rand, int numberOfIterations)
   {
-    DoubleMatrix
-      currentPosition = initialPosition(energy),
-      currentVelocity = initialVelocity(energy.dimension());
+    
     trajectory.add(currentPosition);
     
     for (int iter = 0; iter < numberOfIterations; iter++)
@@ -132,7 +148,7 @@ public class SimpleRFSampler
         final DoubleMatrix candidatePosition = position(directionalMin, velocity, time);
         final double candidateEnergy = energy.valueAt(candidatePosition.data);
         final double delta = candidateEnergy - initialEnergy;
-        if (delta < 0.0)
+        if (delta < - NumericalUtils.THRESHOLD)
           throw new RuntimeException("Did not expect negative delta for convex objective. " +
           		"Delta=" + delta + ", time=" + time);
         return exponential - delta;
@@ -231,24 +247,18 @@ public class SimpleRFSampler
     return collectedPerEvent;
   }
 
-  /**
-   */
-  public DoubleMatrix getLastPosition()
-  {
-    return lastPosition;
-  }
-
-  /**
-   * 
-   * @return velocity after update at the end of last event
-   */
-  public DoubleMatrix getLastVelocity()
-  {
-    return lastVelocity;
-  }
-  
   public int dimensionality()
   {
     return energy.dimension();
+  }
+
+  public DoubleMatrix getCurrentPosition()
+  {
+    return currentPosition;
+  }
+
+  public void setCurrentPosition(DoubleMatrix currentPosition)
+  {
+    this.currentPosition = currentPosition;
   }
 }

@@ -61,7 +61,7 @@ public class NormalExample implements Runnable
       withCovariance(covar); 
       //isotropic(2);
     
-    SimpleRFSampler sampler = new SimpleRFSampler(energy, samplerOptions);
+    SimpleRFSampler sampler = SimpleRFSampler.initializeRFWithLBFGS(energy, samplerOptions);
     Random rand = new Random(134);
     System.out.println("Sampling " + nIterations + " events");
     sampler.iterate(rand, nIterations);
