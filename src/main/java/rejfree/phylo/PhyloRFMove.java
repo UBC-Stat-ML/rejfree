@@ -34,6 +34,8 @@ public class PhyloRFMove extends NodeMove
   
   public SimpleRFSamplerOptions options = new SimpleRFSamplerOptions();
 
+  public int nItersPerPathAuxVar = 1000;
+
   @Override
   public void execute(Random rand)
   {
@@ -61,7 +63,7 @@ public class PhyloRFMove extends NodeMove
       sampler = SimpleRFSampler.initializeRFWithLBFGS(objective, options);
       initialized = true;
     }
-    sampler.iterate(rand, 1000);
+    sampler.iterate(rand, nItersPerPathAuxVar );
     double [] newPoint = sampler.getCurrentPosition().data;
     
     parameters.setVector(newPoint);

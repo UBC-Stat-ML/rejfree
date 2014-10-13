@@ -1,6 +1,10 @@
 package rejfree.phylo;
 
 import java.io.File;
+import java.util.List;
+import java.util.Map;
+
+import com.beust.jcommander.internal.Maps;
 
 import rejfree.SimpleRFSampler.SimpleRFSamplerOptions;
 import bayonet.distributions.Normal.MeanVarianceParameterization;
@@ -8,8 +12,10 @@ import blang.MCMCAlgorithm;
 import blang.MCMCFactory;
 import blang.annotations.DefineFactor;
 import blang.factors.IIDRealVectorGenerativeFactor;
-import blang.mcmc.MHMove;
 import blang.mcmc.Move;
+import blang.processing.LogDensityProcessor;
+import blang.processing.Processor;
+import blang.processing.ProcessorContext;
 import briefj.opt.Option;
 import briefj.opt.OptionSet;
 import briefj.run.Mains;
@@ -18,15 +24,16 @@ import conifer.ctmc.expfam.ExpFamParameters;
 import conifer.factors.UnrootedTreeLikelihood;
 import conifer.models.MultiCategorySubstitutionModel;
 import conifer.moves.PhyloHMCMove;
+import conifer.moves.RealVectorMHProposal;
 
 
 /**
- * Test the phylogenetic MCMC moves on a simple tree model.
+ * Test the phylogenetic MCMC moves on a phylogenetic model.
  * 
  * @author Alexandre Bouchard (alexandre.bouchard@gmail.com)
  *
  */
-public class TestRealData implements Runnable
+public class TestRealData implements Runnable, Processor
 {
   @Option 
   public File treeFile = new File("primates.fasta");
@@ -35,19 +42,25 @@ public class TestRealData implements Runnable
   public File sequencesFile = new File("final-tree.newick");
   
   @Option 
-  public boolean useRF = false;
+  public boolean useRF = true;
   
   @Option 
   public boolean useHMC = false;
   
   @Option
+  public boolean useMH = false;
+  
+  @Option
   public boolean useAdaptiveHMC = false;
   
   @Option
-  public double epsilon = 0.1;
+  public double epsilon = 0.05;
   
   @Option
-  public int L = 10;
+  public int L = 100;
+  
+  @Option
+  public int nItersPerPathAuxVar = 100;
   
   @OptionSet(name = "rfoptions")
   SimpleRFSamplerOptions rfOptions = new SimpleRFSamplerOptions();
@@ -72,18 +85,23 @@ public class TestRealData implements Runnable
   public void run()
   {
     model = new Model();
-    factory.excludeNodeMove(MHMove.class);
-    if (useRF)
-      factory.addNodeMove(ExpFamParameters.class, PhyloRFMove.class);
-    if (useHMC)
-      ;
-    else
-      factory.excludeNodeMove(PhyloHMCMove.class);
-    int nMovesRequested = (useRF ? 1 : 0) + (useHMC ? 1 : 0);
+    factory.addProcessor(this);
+    factory.addProcessor(new LogDensityProcessor());
+    
+    if (useMH)  ;
+    else        factory.excludeNodeMove(RealVectorMHProposal.class);
+    
+    if (useRF)  factory.addNodeMove(ExpFamParameters.class, PhyloRFMove.class);
+    else        ;
+    
+    if (useHMC) ;
+    else        factory.excludeNodeMove(PhyloHMCMove.class);
+    
+    int nMovesRequested = (useRF ? 1 : 0) + (useHMC ? 1 : 0) + (useMH ? 1 : 0);
     
     MCMCAlgorithm mcmc = factory.build(model, false);
     if (mcmc.sampler.moves.size() != nMovesRequested)
-      throw new RuntimeException();
+      throw new RuntimeException("" + mcmc.sampler.moves.size() + "!=" + nMovesRequested);
     
     if (!useAdaptiveHMC && useHMC)
     {
@@ -100,16 +118,34 @@ public class TestRealData implements Runnable
     if (useRF)
       for (Move move : mcmc.sampler.moves)
         if (move instanceof PhyloRFMove)
+        {
           ((PhyloRFMove) move).options = this.rfOptions;
+          ((PhyloRFMove) move).nItersPerPathAuxVar = this.nItersPerPathAuxVar;
+        }
+    
+    if (useHMC)
+      for (Move move : mcmc.sampler.moves)
+        if (move instanceof PhyloHMCMove)
+          ((PhyloHMCMove) move).nItersPerPathAuxVar = this.nItersPerPathAuxVar;
     
     System.out.println(mcmc.model);
     System.out.println(mcmc.sampler);
+    
     mcmc.run();
   }
 
   public static void main(String [] args)
   {
     Mains.instrumentedRun(args, new TestRealData());
+  }
+  
+  Map<String,List<Double>> data = Maps.newLinkedHashMap();
+
+  @Override
+  public void process(ProcessorContext context)
+  {
+    
+    
   }
 
 }
