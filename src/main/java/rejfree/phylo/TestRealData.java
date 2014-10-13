@@ -35,31 +35,31 @@ import conifer.moves.RealVectorMHProposal;
  */
 public class TestRealData implements Runnable, Processor
 {
-  @Option 
-  public File treeFile = new File("primates.fasta");
+  @Option(required = true, gloss = "Location of sequence files in FASTA format.")
+  public File treeFile;
   
-  @Option
-  public File sequencesFile = new File("final-tree.newick");
+  @Option(required = true, gloss = "Location of tree file in newick format")
+  public File sequencesFile;
   
-  @Option 
+  @Option(gloss = "If the Rejection Free sampler should be used.")
   public boolean useRF = true;
   
-  @Option 
+  @Option(gloss = "If the Hamiltonian Monte Carlo sampler should be used.")
   public boolean useHMC = false;
   
-  @Option
+  @Option(gloss = "If the random walk (symmetric proposal) Metropolis sampler should be used.")
   public boolean useMH = false;
   
-  @Option
+  @Option(gloss = "If L and epsilon should be set adaptively.")
   public boolean useAdaptiveHMC = false;
   
-  @Option
+  @Option(gloss = "Step size of the the HMC sampler")
   public double epsilon = 0.05;
   
-  @Option
+  @Option(gloss = "Number of steps per accept reject HMC move.")
   public int L = 100;
   
-  @Option
+  @Option(gloss = "Number of parameter moves per auxiliary variable resampling.")
   public int nItersPerPathAuxVar = 100;
   
   @OptionSet(name = "rfoptions")
