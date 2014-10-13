@@ -81,9 +81,5 @@ buildscript {
   }
 }
 
-// http://www.gradle.org/docs/current/userguide/application_plugin.html
-// use 'gradle startScripts' to create script
-// use 'gradle distZip' to create deployable zip
-// use 'gradle installApp' to copy it somewhere
 apply plugin:'application'  
-mainClassName = "rejfree.Main"
+mainClassName = "rejfree.phylo.TestRealData"
