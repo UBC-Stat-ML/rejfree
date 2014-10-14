@@ -55,7 +55,7 @@ public class SimpleRFSampler
     this.energy = energy;
     this.options = options;
     this.currentPosition = initialPosition;
-    this.currentVelocity = initialVelocity(energy.dimension());
+    this.currentVelocity = initialVelocity(energy.dimension(), new Random(1));
   }
   
   public SimpleRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition)
@@ -73,9 +73,11 @@ public class SimpleRFSampler
     return initializeRFWithLBFGS(energy, new SimpleRFSamplerOptions());
   }
   
-  private DoubleMatrix initialVelocity(int dimension)
+  private DoubleMatrix initialVelocity(int dimension, Random rand)
   {
-    DoubleMatrix random = DoubleMatrix.randn(dimension);
+    DoubleMatrix random = new DoubleMatrix(dimension);
+    for (int i = 0; i < dimension; i++)
+      random.data[i] = rand.nextGaussian();
     double norm = random.norm2();
     return random.muli(1.0/norm);
   }
@@ -109,7 +111,7 @@ public class SimpleRFSampler
       if (collisionOccurs)
         currentVelocity = Bouncer.bounce(currentVelocity, gradient(currentPosition));
       else
-        currentVelocity = initialVelocity(currentVelocity.length);
+        currentVelocity = initialVelocity(currentVelocity.length, rand);
     }
   }
 
@@ -149,7 +151,7 @@ public class SimpleRFSampler
         final double candidateEnergy = energy.valueAt(candidatePosition.data);
         final double delta = candidateEnergy - initialEnergy;
         if (delta < - NumericalUtils.THRESHOLD)
-          throw new RuntimeException("Did not expect negative delta for convex objective. " +
+          System.err.println("Did not expect negative delta for convex objective. " +
           		"Delta=" + delta + ", time=" + time);
         return exponential - delta;
       }
