@@ -16,6 +16,7 @@ import blang.mcmc.Move;
 import blang.processing.LogDensityProcessor;
 import blang.processing.Processor;
 import blang.processing.ProcessorContext;
+import briefj.opt.InputFile;
 import briefj.opt.Option;
 import briefj.opt.OptionSet;
 import briefj.run.Mains;
@@ -35,9 +36,11 @@ import conifer.moves.RealVectorMHProposal;
  */
 public class TestRealData implements Runnable, Processor
 {
+  @InputFile
   @Option(required = true, gloss = "Location of sequence files in FASTA format.")
   public File treeFile;
   
+  @InputFile
   @Option(required = true, gloss = "Location of tree file in newick format")
   public File sequencesFile;
   
