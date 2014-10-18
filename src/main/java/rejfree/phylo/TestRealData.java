@@ -66,7 +66,7 @@ public class TestRealData implements Runnable, Processor
   public int nItersPerPathAuxVar = 100;
   
   @OptionSet(name = "rfoptions")
-  SimpleRFSamplerOptions rfOptions = new SimpleRFSamplerOptions();
+  public SimpleRFSamplerOptions rfOptions = new SimpleRFSamplerOptions();
   
   @OptionSet(name = "factory")
   public final MCMCFactory factory = new MCMCFactory();
