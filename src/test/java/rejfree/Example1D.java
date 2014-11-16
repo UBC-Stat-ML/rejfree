@@ -20,20 +20,14 @@ public class Example1D
   public static List<Double> method1(Random rand)
   {
     List<Double> result = Lists.newArrayList();
-    double meanEstimator = 0.0;
-    double meanEstimatorDenom = 0.0;
     for (int i = 0; i < nIters; i++)
     {
       double u = rand.nextDouble();
       double t = Math.sqrt(-2.0 * Math.log(u));
-      meanEstimator += t * Math.abs(t) / 2.0;
-      meanEstimatorDenom += t;
       int pp = Poisson.generate(rand, t);
       for (int j = 0; j < pp; j++)
         result.add(Uniform.generate(rand, -t, t));
     }
-    
-//    System.out.println("RB:" + meanEstimator/meanEstimatorDenom);
     
     return result;
   }

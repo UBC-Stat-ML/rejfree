@@ -41,6 +41,9 @@ public class SimpleRFSampler
     
     @Option
     public double collectRate = 1.0;
+
+    @Option
+    public boolean useInformedVelocityUpdate = false;
   }
   
   private SummaryStatistics collisionToRefreshmentRatio = new SummaryStatistics();
@@ -87,6 +90,13 @@ public class SimpleRFSampler
     double [] min = new LBFGSMinimizer().minimize(energy, new DoubleMatrix(energy.dimension()).data, 1e-2);
     return new DoubleMatrix(min);
   }
+  private DoubleMatrix _cachedOptimizePosition = null;
+  private DoubleMatrix cachedOptimizePosition()
+  {
+    if (_cachedOptimizePosition == null)
+      _cachedOptimizePosition = optimizePosition(this.energy);
+    return _cachedOptimizePosition;
+  }
 
   public void iterate(Random rand, int numberOfIterations)
   {
@@ -111,7 +121,23 @@ public class SimpleRFSampler
       if (collisionOccurs)
         currentVelocity = Bouncer.bounce(currentVelocity, gradient(currentPosition));
       else
-        currentVelocity = initialVelocity(currentVelocity.length, rand);
+        currentVelocity = refreshVelocity(currentPosition, currentVelocity, rand); 
+    }
+  }
+  
+
+  private DoubleMatrix refreshVelocity(DoubleMatrix currentPosition,
+      DoubleMatrix currentVelocity, Random rand)
+  {
+    if (rand.nextBoolean() || !options.useInformedVelocityUpdate)
+      return initialVelocity(currentVelocity.length, rand);
+    else
+    {
+      DoubleMatrix difference = currentPosition.sub(cachedOptimizePosition());
+      difference.muli(1.0/difference.norm2());
+      if (rand.nextBoolean())
+        difference.muli((-1));
+      return difference;
     }
   }
 
