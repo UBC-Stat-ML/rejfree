@@ -58,7 +58,7 @@ public class SimpleRFSampler
     this.energy = energy;
     this.options = options;
     this.currentPosition = initialPosition;
-    this.currentVelocity = initialVelocity(energy.dimension(), new Random(1));
+    this.currentVelocity = uniformOnUnitBall(energy.dimension(), new Random(1));
   }
   
   public SimpleRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition)
@@ -76,7 +76,13 @@ public class SimpleRFSampler
     return initializeRFWithLBFGS(energy, new SimpleRFSamplerOptions());
   }
   
-  private DoubleMatrix initialVelocity(int dimension, Random rand)
+  /**
+   * 
+   * @param dimension
+   * @param rand
+   * @return A random vector of unit norm.
+   */
+  public static DoubleMatrix uniformOnUnitBall(int dimension, Random rand)
   {
     DoubleMatrix random = new DoubleMatrix(dimension);
     for (int i = 0; i < dimension; i++)
@@ -130,7 +136,7 @@ public class SimpleRFSampler
       DoubleMatrix currentVelocity, Random rand)
   {
     if (rand.nextBoolean() || !options.useInformedVelocityUpdate)
-      return initialVelocity(currentVelocity.length, rand);
+      return uniformOnUnitBall(currentVelocity.length, rand);
     else
     {
       DoubleMatrix difference = currentPosition.sub(cachedOptimizePosition());

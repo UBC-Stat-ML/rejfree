@@ -1,7 +1,6 @@
 package rejfree;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -10,7 +9,6 @@ import org.apache.commons.math3.stat.inference.TTest;
 import org.jblas.DoubleMatrix;
 
 import bayonet.rplot.PlotHistogram;
-import blang.validation.CheckStationarity;
 
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Doubles;
