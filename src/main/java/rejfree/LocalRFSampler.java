@@ -33,7 +33,7 @@ public class LocalRFSampler
     this.simpleRFOptions = options;
     globalVelocityRefreshment(new Random(1), 0.0);
   }
-  
+
   private void globalVelocityRefreshment(Random rand, double refreshmentTime)
   {
     final List<Object> variables = model.getLatentVariables();
@@ -99,7 +99,7 @@ public class LocalRFSampler
   {
     collisionQueue.remove(factor);
     double exponentialRealization = Exponential.generate(rand, 1.0);
-    double candidateCollisionTime = factor.getCollisionTime(exponentialRealization);
+    double candidateCollisionTime = factor.getCollisionTime(exponentialRealization, getVelocityMatrix(factor));
     collisionQueue.add(factor, candidateCollisionTime);
   }
   
@@ -140,7 +140,7 @@ public class LocalRFSampler
   private void updateTrajectories(CollisionFactor collisionFactor, double collisionTime)
   {
     DoubleMatrix gradient = collisionFactor.gradient();
-    DoubleMatrix oldVelocity = getVelocityMatrix(collisionFactor, gradient.length);
+    DoubleMatrix oldVelocity = getVelocityMatrix(collisionFactor);
     DoubleMatrix newVelocity = Bouncer.bounce(oldVelocity, gradient);
     
     final int length = newVelocity.length;
@@ -173,8 +173,9 @@ public class LocalRFSampler
     // TODO Auto-generated method stub
   }
 
-  private DoubleMatrix getVelocityMatrix(CollisionFactor factor, int length)
+  private DoubleMatrix getVelocityMatrix(CollisionFactor factor)
   {
+    final int length = factor.nVariables();
     DoubleMatrix result = new DoubleMatrix(length);
     for (int i = 0; i < length; i++)
       result.put(i, trajectories.get(factor.getVariable(i)).velocity_t);
