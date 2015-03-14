@@ -39,7 +39,7 @@ public class TrajectoryRay
   public double position(double time)
   {
     if (time < t)
-      throw new RuntimeException();
+      throw new RuntimeException("Current time cannot be smaller than start t (time=" + time + ",t=" + t + ")");
     
     return position_t + (time - t) * velocity_t;
   }

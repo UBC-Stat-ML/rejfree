@@ -19,9 +19,12 @@ public class EventQueue<S>
   
   public void remove(S event)
   {
-    double time = eventTimes.get(event);
-    sortedEvents.remove(time);
-    eventTimes.remove(event);
+    Double time = eventTimes.get(event);
+    if (time != null)
+    {
+      sortedEvents.remove(time);
+      eventTimes.remove(event);
+    }
   }
   
   public void add(S event, double time)

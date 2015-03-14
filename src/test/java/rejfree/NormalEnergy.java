@@ -4,6 +4,7 @@ import org.jblas.Decompose;
 import org.jblas.DoubleMatrix;
 import org.jblas.Solve;
 
+import bayonet.math.JBlasUtils;
 import bayonet.opt.DifferentiableFunction;
 
 
@@ -25,7 +26,7 @@ public class NormalEnergy implements DifferentiableFunction
   
   public static NormalEnergy withCovariance(DoubleMatrix covar)
   {
-    return new NormalEnergy(Solve.pinv(covar));
+    return new NormalEnergy(JBlasUtils.inversePositiveMatrix(covar));
   }
   
   private NormalEnergy(DoubleMatrix precisionMatrix)
