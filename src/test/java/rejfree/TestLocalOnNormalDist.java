@@ -3,7 +3,6 @@ package rejfree;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.stream.IntStream;
 
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
@@ -14,8 +13,6 @@ import com.google.common.collect.Lists;
 
 import rejfree.SimpleRFSampler.SimpleRFSamplerOptions;
 import bayonet.math.JBlasUtils;
-import blang.MCMCAlgorithm;
-import blang.MCMCFactory;
 import blang.ProbabilityModel;
 import blang.annotations.DefineFactor;
 import blang.processing.Processor;
@@ -62,27 +59,22 @@ public class TestLocalOnNormalDist implements Processor
       stats.add(new SummaryStatistics());
     
     
-//    // standard
-//    MCMCFactory factory = new MCMCFactory();
-//    factory.mcmcOptions.nMCMCSweeps = 100000;
-//    MCMCAlgorithm mcmc = factory.build(model);
-//    mcmc.run();
-    
     SimpleRFSamplerOptions options = new SimpleRFSamplerOptions();
-    options.refreshRate = 0.0;
+    options.refreshRate = 0.0001;
+    options.collectRate = 10.0;
     LocalRFSampler local = new LocalRFSampler(model, options);
     
-    
+    local.processors.clear();
     local.processors.add(this);
     Random rand = new Random(1);
-    local.iterate(rand , 100000);
+    local.iterate(rand , 200000);
     
     for (int i = 0; i < 3; i++)
     {
       System.out.println(stats.get(i).getVariance());
       System.out.println(stats.get(i).getMean());
-      Assert.assertEquals(stats.get(i).getVariance(), fullCovar.get(i,i), 0.01);
-      Assert.assertEquals(stats.get(i).getMean(), 0.0, 0.01);
+      Assert.assertEquals(fullCovar.get(i,i), stats.get(i).getVariance(), 0.01);
+      Assert.assertEquals(0.0, stats.get(i).getMean(), 0.01);
       System.out.println("---");
     }
     

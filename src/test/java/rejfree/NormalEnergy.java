@@ -2,7 +2,6 @@ package rejfree;
 
 import org.jblas.Decompose;
 import org.jblas.DoubleMatrix;
-import org.jblas.Solve;
 
 import bayonet.math.JBlasUtils;
 import bayonet.opt.DifferentiableFunction;
