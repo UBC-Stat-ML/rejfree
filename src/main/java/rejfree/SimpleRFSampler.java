@@ -108,7 +108,7 @@ public class SimpleRFSampler
       // simulate event
       final double exponential = - Math.log(rand.nextDouble());
       double collisionTime = solver.collisionTime(currentPosition, currentVelocity, energy, exponential);
-      double refreshTime = Exponential.generate(rand, options.refreshRate);
+      double refreshTime = options.refreshRate == 0 ? Double.POSITIVE_INFINITY : Exponential.generate(rand, options.refreshRate);
       double eventTime = Math.min(collisionTime, refreshTime);
       collisionToRefreshmentRatio.addValue(collisionTime/refreshTime);
       
@@ -145,6 +145,8 @@ public class SimpleRFSampler
   private void collectSamples(DoubleMatrix initialPosition,
       DoubleMatrix velocity, double eventTime, Random rand)
   {
+    if (options.collectRate == 0.0)
+      return;
     double timeConsumed = Exponential.generate(rand, options.collectRate);
     int nCollected = 0;
     while (timeConsumed < eventTime)
