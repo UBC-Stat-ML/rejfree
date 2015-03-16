@@ -22,14 +22,14 @@ public class SimpleRFSampler
    */
   private final DifferentiableFunction energy;
   private final PegasusConvexCollisionSolver solver = new PegasusConvexCollisionSolver();
-  private final SimpleRFSamplerOptions options;
+  private final RFSamplerOptions options;
   
   private List<DoubleMatrix> trajectory = Lists.newArrayList();
   private List<DoubleMatrix> samples = Lists.newArrayList();
   
   private DoubleMatrix currentPosition, currentVelocity;
 
-  public static class SimpleRFSamplerOptions
+  public static class RFSamplerOptions
   {
     @Option
     public double refreshRate = 0.0001;
@@ -48,44 +48,29 @@ public class SimpleRFSampler
    * 
    * @param energy The negative log density of the target, assumed to be convex
    */
-  public SimpleRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition, SimpleRFSamplerOptions options)
+  public SimpleRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition, RFSamplerOptions options)
   {
     this.energy = energy;
     this.options = options;
     this.currentPosition = initialPosition;
-    this.currentVelocity = uniformOnUnitBall(energy.dimension(), new Random(1));
+    this.currentVelocity = null; 
   }
   
   public SimpleRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition)
   {
-    this(energy, initialPosition, new SimpleRFSamplerOptions());
+    this(energy, initialPosition, new RFSamplerOptions());
   }
   
-  public static SimpleRFSampler initializeRFWithLBFGS(DifferentiableFunction energy, SimpleRFSamplerOptions options)
+  public static SimpleRFSampler initializeRFWithLBFGS(DifferentiableFunction energy, RFSamplerOptions options)
   {
     return new SimpleRFSampler(energy, optimizePosition(energy), options);
   }
   
   public static SimpleRFSampler initializeRFWithLBFGS(DifferentiableFunction energy)
   {
-    return initializeRFWithLBFGS(energy, new SimpleRFSamplerOptions());
+    return initializeRFWithLBFGS(energy, new RFSamplerOptions());
   }
   
-  /**
-   * 
-   * @param dimension
-   * @param rand
-   * @return A random vector of unit norm.
-   */
-  public static DoubleMatrix uniformOnUnitBall(int dimension, Random rand)
-  {
-    DoubleMatrix random = new DoubleMatrix(dimension);
-    for (int i = 0; i < dimension; i++)
-      random.data[i] = rand.nextGaussian();
-    double norm = random.norm2();
-    return random.muli(1.0/norm);
-  }
-
   private static DoubleMatrix optimizePosition(DifferentiableFunction energy)
   {
     double [] min = new LBFGSMinimizer().minimize(energy, new DoubleMatrix(energy.dimension()).data, 1e-2);
@@ -101,6 +86,9 @@ public class SimpleRFSampler
 
   public void iterate(Random rand, int numberOfIterations)
   {
+    if (currentVelocity == null)
+      currentVelocity = uniformOnUnitBall(energy.dimension(), rand);
+    
     trajectory.add(currentPosition);
     
     for (int iter = 0; iter < numberOfIterations; iter++)

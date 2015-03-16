@@ -11,7 +11,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import rejfree.SimpleRFSampler.SimpleRFSamplerOptions;
+import rejfree.SimpleRFSampler.RFSamplerOptions;
 import bayonet.math.JBlasUtils;
 import blang.ProbabilityModel;
 import blang.annotations.DefineFactor;
@@ -59,7 +59,7 @@ public class TestLocalOnNormalDist implements Processor
       stats.add(new SummaryStatistics());
     
     
-    SimpleRFSamplerOptions options = new SimpleRFSamplerOptions();
+    RFSamplerOptions options = new RFSamplerOptions();
     options.refreshRate = 0.0001;
     options.collectRate = 10.0;
     LocalRFSampler local = new LocalRFSampler(model, options);
@@ -73,8 +73,8 @@ public class TestLocalOnNormalDist implements Processor
     {
       System.out.println(stats.get(i).getVariance());
       System.out.println(stats.get(i).getMean());
-      Assert.assertEquals(fullCovar.get(i,i), stats.get(i).getVariance(), 0.01);
-      Assert.assertEquals(0.0, stats.get(i).getMean(), 0.01);
+      Assert.assertEquals(fullCovar.get(i,i), stats.get(i).getVariance(), 0.02);
+      Assert.assertEquals(0.0, stats.get(i).getMean(), 0.02);
       System.out.println("---");
     }
     

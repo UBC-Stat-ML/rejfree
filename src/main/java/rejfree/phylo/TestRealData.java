@@ -6,7 +6,7 @@ import java.util.Map;
 
 import com.beust.jcommander.internal.Maps;
 
-import rejfree.SimpleRFSampler.SimpleRFSamplerOptions;
+import rejfree.SimpleRFSampler.RFSamplerOptions;
 import bayonet.distributions.Normal.MeanVarianceParameterization;
 import blang.MCMCAlgorithm;
 import blang.MCMCFactory;
@@ -66,7 +66,7 @@ public class TestRealData implements Runnable, Processor
   public int nItersPerPathAuxVar = 100;
   
   @OptionSet(name = "rfoptions")
-  public SimpleRFSamplerOptions rfOptions = new SimpleRFSamplerOptions();
+  public RFSamplerOptions rfOptions = new RFSamplerOptions();
   
   @OptionSet(name = "factory")
   public final MCMCFactory factory = new MCMCFactory();

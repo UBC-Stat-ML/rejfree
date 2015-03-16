@@ -7,7 +7,7 @@ import java.util.Random;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
 
-import rejfree.SimpleRFSampler.SimpleRFSamplerOptions;
+import rejfree.SimpleRFSampler.RFSamplerOptions;
 
 import com.google.common.collect.Lists;
 
@@ -42,7 +42,7 @@ public class NormalExample implements Runnable
   public int maxTrajectoryToPlot = 500;
   
   @OptionSet(name = "rf")
-  public SimpleRFSamplerOptions samplerOptions = new SimpleRFSamplerOptions();
+  public RFSamplerOptions samplerOptions = new RFSamplerOptions();
   
   @Option
   public double var1 = 1.0;

@@ -7,7 +7,7 @@ import java.util.Random;
 import org.jblas.DoubleMatrix;
 
 import rejfree.SimpleRFSampler;
-import rejfree.SimpleRFSampler.SimpleRFSamplerOptions;
+import rejfree.SimpleRFSampler.RFSamplerOptions;
 import bayonet.distributions.Normal.MeanVarianceParameterization;
 import blang.factors.IIDRealVectorGenerativeFactor;
 import blang.mcmc.ConnectedFactor;
@@ -32,7 +32,7 @@ public class PhyloRFMove extends NodeMove
   @ConnectedFactor UnrootedTreeLikelihood<MultiCategorySubstitutionModel<ExpFamMixture>> likelihood;
   @ConnectedFactor IIDRealVectorGenerativeFactor<MeanVarianceParameterization> prior;
   
-  public SimpleRFSamplerOptions options = new SimpleRFSamplerOptions();
+  public RFSamplerOptions options = new RFSamplerOptions();
 
   public int nItersPerPathAuxVar = 1000;
 

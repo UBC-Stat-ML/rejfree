@@ -1,5 +1,6 @@
 package rejfree;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,9 +12,7 @@ import java.util.Random;
 
 import org.jblas.DoubleMatrix;
 
-import com.google.common.collect.Lists;
-
-import rejfree.SimpleRFSampler.SimpleRFSamplerOptions;
+import rejfree.SimpleRFSampler.RFSamplerOptions;
 import bayonet.distributions.Exponential;
 import blang.ProbabilityModel;
 import blang.MCMCFactory.Factories;
@@ -24,6 +23,7 @@ import blang.processing.Processor;
 import blang.processing.ProcessorContext;
 import blang.processing.ProcessorFactory;
 import blang.variables.RealVariable;
+import briefj.Indexer;
 
 
 
@@ -32,31 +32,85 @@ public class LocalRFSampler
   private final EventQueue<CollisionFactor> collisionQueue = new EventQueue<>();
   private final Map<RealVariable, TrajectoryRay> trajectories = new HashMap<>();
   
-  private final ProbabilityModel model;
-  private final SimpleRFSamplerOptions simpleRFOptions;
-  
-  public final List<Processor> processors;
+  public final ProbabilityModel model;
+  private final RFSamplerOptions rfOptions;
   private final MCMCOptions mcmcOptions;
   
-  public LocalRFSampler(ProbabilityModel model, SimpleRFSamplerOptions options)
+  public final List<Processor> processors = new ArrayList<Processor>();
+  public final List<RayProcessor> rayProcessors = new ArrayList<>();
+  
+  public LocalRFSampler(ProbabilityModel model, RFSamplerOptions options)
   {
     this.model = model;
-    this.simpleRFOptions = options;
-    globalVelocityRefreshment(new Random(1), 0.0);
+    this.rfOptions = options;
     this.mcmcOptions = new MCMCOptions();
     mcmcOptions.burnIn = 0;
     mcmcOptions.thinningPeriod = 1;
     mcmcOptions.nMCMCSweeps = Integer.MAX_VALUE;
-//    mcmcOptions.progressCODA = true;
+    // mcmcOptions.progressCODA = true;  <-- avoid this, it makes things slow
     Factories<ProcessorFactory,NodeProcessorFactory> processorFactories = new Factories<ProcessorFactory,NodeProcessorFactory>(new NodeProcessorFactory());
-    this.processors = Lists.newArrayList();
     for (ProcessorFactory f : processorFactories.factories)
       processors.addAll(f.build(model));
   }
   
   private void processRay(RealVariable var, TrajectoryRay ray, double timeTheRayEnds)
   {
-    // TODO can compute the means more efficiently this way
+    for (RayProcessor processor : rayProcessors)
+      processor.processRay(var, ray, timeTheRayEnds, this);
+  }
+  
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  public RecordFullTrajectory addRecordFullTrajectoryProcessor()
+  {
+    Indexer variablesIndexer = new Indexer<>(model.getLatentVariables());
+    RecordFullTrajectory processor = new RecordFullTrajectory(variablesIndexer);
+    rayProcessors.add(processor);
+    return processor;
+  }
+  
+  public static class RecordFullTrajectory implements RayProcessor
+  {
+    public final List<DoubleMatrix> samples = new ArrayList<>();
+    public final Indexer<RealVariable> variablesIndexer;
+    private double lastT = 0.0;
+    
+    public RecordFullTrajectory(Indexer<RealVariable> variablesIndexer)
+    {
+      super();
+      this.variablesIndexer = variablesIndexer;
+    }
+
+    @Override
+    public void processRay(RealVariable var, TrajectoryRay ray,
+        double timeTheRayEnds, LocalRFSampler sampler)
+    {
+      if (timeTheRayEnds == lastT)
+        return;
+      sampler.updateAllVariables(timeTheRayEnds);
+      process(sampler);
+      lastT = timeTheRayEnds;
+    }
+
+    @Override
+    public void init(LocalRFSampler sampler)
+    {
+      process(sampler);
+    }
+    
+    private void process(LocalRFSampler sampler)
+    {
+      DoubleMatrix current = new DoubleMatrix(variablesIndexer.size());
+      int i = 0;
+      for (RealVariable var : variablesIndexer.objectsList())
+        current.put(i++, var.getValue());
+      samples.add(current);
+    }
+  }
+  
+  public static interface RayProcessor
+  {
+    public void init(LocalRFSampler sampler);
+    public void processRay(RealVariable var, TrajectoryRay ray, double timeTheRayEnds, LocalRFSampler sampler);
   }
   
   private int pointCollectIter = 0;
@@ -66,27 +120,38 @@ public class LocalRFSampler
       p.process(new ProcessorContext(pointCollectIter++, model, mcmcOptions));
   }
 
-  private void globalVelocityRefreshment(Random rand, double refreshmentTime)
+  private void globalVelocityRefreshment(Random rand, double refreshmentTime, boolean initializing)
   {
     final List<Object> variables = model.getLatentVariables();
     final int dimensionality = variables.size();
-    final DoubleMatrix uniformOnUnitBall = SimpleRFSampler.uniformOnUnitBall(variables.size(), rand);
+    final DoubleMatrix uniformOnUnitBall = StaticUtils.uniformOnUnitBall(variables.size(), rand);
     for (int i = 0; i < dimensionality; i++)
     {
       RealVariable variable = (RealVariable) variables.get(i);
       double currentVelocity = uniformOnUnitBall.get(i);
-      if (trajectories.containsKey(variable))
-        updateTrajectory(refreshmentTime, variable, currentVelocity);
+      if (initializing)
+        initTrajectory(refreshmentTime, variable, currentVelocity);
       else
-        trajectories.put(variable, new TrajectoryRay(refreshmentTime, 0.0, uniformOnUnitBall.get(i)));
+        updateTrajectory(refreshmentTime, variable, currentVelocity);
+        
     }
     for (Factor factor : model.linearizedFactors())
       updateCandidateCollision(rand, (CollisionFactor) factor, refreshmentTime);
   }
 
+  private void initTrajectory(double refreshmentTime, RealVariable variable, double currentVelocity)
+  {
+    if (trajectories.containsKey(variable))
+      throw new RuntimeException();
+    trajectories.put(variable, new TrajectoryRay(refreshmentTime, 0.0, currentVelocity));
+  }
+
   public void iterate(Random rand, int numberOfIterations)
   {
-    double nextGlobalRefreshmentTime = Exponential.generate(rand, simpleRFOptions.refreshRate);
+    globalVelocityRefreshment(rand, 0.0, true);
+    for (RayProcessor rayProc : rayProcessors)
+      rayProc.init(this);
+    double nextGlobalRefreshmentTime = rfOptions.refreshRate == 0 ? Double.POSITIVE_INFINITY : Exponential.generate(rand, rfOptions.refreshRate);
     double currentTime = 0.0;
     for (int iter = 0; iter < numberOfIterations; iter++)
     {
@@ -99,21 +164,23 @@ public class LocalRFSampler
       }
       else
       {
-        globalVelocityRefreshment(rand, nextGlobalRefreshmentTime);
+        globalVelocityRefreshment(rand, nextGlobalRefreshmentTime, false);
         currentTime = nextGlobalRefreshmentTime;
-        nextGlobalRefreshmentTime += Exponential.generate(rand, simpleRFOptions.refreshRate);
+        nextGlobalRefreshmentTime += Exponential.generate(rand, rfOptions.refreshRate);
       }
     }
   }
   
   private void collectSamples(double currentTime, double nextEventTime, Random rand)
   {
-    double timeConsumed = currentTime + Exponential.generate(rand, simpleRFOptions.collectRate);
+    if (rfOptions.collectRate == 0.0)
+      return;
+    double timeConsumed = currentTime + Exponential.generate(rand, rfOptions.collectRate);
     while (timeConsumed < nextEventTime)
     {
       updateAllVariables(timeConsumed);
       processPoint();
-      timeConsumed += Exponential.generate(rand, simpleRFOptions.collectRate);
+      timeConsumed += Exponential.generate(rand, rfOptions.collectRate);
     }
   }
   
@@ -147,7 +214,7 @@ public class LocalRFSampler
   private void updateCandidateCollision(Random rand, CollisionFactor factor, double currentTime)
   {
     collisionQueue.remove(factor);
-    double exponentialRealization = Exponential.generate(rand, 1.0);
+    double exponentialRealization = - Math.log(rand.nextDouble()); 
     double candidateCollisionTime = currentTime + factor.getCollisionDeltaTime(exponentialRealization, getVelocityMatrix(factor));
     collisionQueue.add(factor, candidateCollisionTime);
   }

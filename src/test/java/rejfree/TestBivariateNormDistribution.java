@@ -13,7 +13,7 @@ import bayonet.rplot.PlotHistogram;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Doubles;
 
-import rejfree.SimpleRFSampler.SimpleRFSamplerOptions;
+import rejfree.SimpleRFSampler.RFSamplerOptions;
 
 
 
@@ -24,7 +24,7 @@ public class TestBivariateNormDistribution
   {
     NormalEnergy energy = NormalEnergy.isotropic(2);
       
-    SimpleRFSamplerOptions samplerOptions = new SimpleRFSamplerOptions();
+    RFSamplerOptions samplerOptions = new RFSamplerOptions();
     samplerOptions.collectRate = 0.0005;
     SimpleRFSampler sampler = SimpleRFSampler.initializeRFWithLBFGS(energy, samplerOptions);
     Random rand = new Random(134);
