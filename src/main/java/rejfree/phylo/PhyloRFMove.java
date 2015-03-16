@@ -6,8 +6,8 @@ import java.util.Random;
 
 import org.jblas.DoubleMatrix;
 
-import rejfree.SimpleRFSampler;
-import rejfree.SimpleRFSampler.RFSamplerOptions;
+import rejfree.GlobalRFSampler;
+import rejfree.GlobalRFSampler.RFSamplerOptions;
 import bayonet.distributions.Normal.MeanVarianceParameterization;
 import blang.factors.IIDRealVectorGenerativeFactor;
 import blang.mcmc.ConnectedFactor;
@@ -51,16 +51,16 @@ public class PhyloRFMove extends NodeMove
     double [] initialPoint = parameters.getVector();
     
     
-    SimpleRFSampler sampler;
+    GlobalRFSampler sampler;
     
     if (initialized)
     {
-      sampler = new SimpleRFSampler(objective, new DoubleMatrix(initialPoint), options);
+      sampler = new GlobalRFSampler(objective, new DoubleMatrix(initialPoint), options);
     }
     else
     {
       System.out.println("Initializing RF sampler");
-      sampler = SimpleRFSampler.initializeRFWithLBFGS(objective, options);
+      sampler = GlobalRFSampler.initializeRFWithLBFGS(objective, options);
       initialized = true;
     }
     sampler.iterate(rand, nItersPerPathAuxVar );

@@ -11,7 +11,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import rejfree.SimpleRFSampler.RFSamplerOptions;
+import rejfree.GlobalRFSampler.RFSamplerOptions;
 import bayonet.math.JBlasUtils;
 import blang.ProbabilityModel;
 import blang.annotations.DefineFactor;
@@ -77,8 +77,6 @@ public class TestLocalOnNormalDist implements Processor
       Assert.assertEquals(0.0, stats.get(i).getMean(), 0.02);
       System.out.println("---");
     }
-    
-
   }
   
   
@@ -97,7 +95,6 @@ public class TestLocalOnNormalDist implements Processor
     @DefineFactor
     NormalFactor f23 = NormalFactor.withCovariance(Lists.newArrayList(v2, v3), localCovar);
   }
-
 
   private List<SummaryStatistics> stats = new ArrayList<>();
   @Override

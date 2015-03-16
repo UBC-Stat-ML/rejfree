@@ -11,8 +11,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import rejfree.LocalRFSampler.RecordFullTrajectory;
-import rejfree.SimpleRFSampler.RFSamplerOptions;
+import rejfree.GlobalRFSampler.RFSamplerOptions;
 import bayonet.math.NumericalUtils;
 import bayonet.opt.DifferentiableFunction;
 import blang.ProbabilityModel;
@@ -85,7 +84,7 @@ public class CheckTrajWithAnalyticNormalCalc
   public void testSimpleRFSamplerWithIsotropicNormal()
   {
     Random rand = new Random(1);
-    SimpleRFSampler sampler = SimpleRFSampler.initializeRFWithLBFGS(energy, options);
+    GlobalRFSampler sampler = GlobalRFSampler.initializeRFWithLBFGS(energy, options);
     sampler.iterate(rand, nIters);
     checkAgainsAnalytic(sampler.getTrajectory());
   }

@@ -7,7 +7,7 @@ import java.util.Random;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
 
-import rejfree.SimpleRFSampler.RFSamplerOptions;
+import rejfree.GlobalRFSampler.RFSamplerOptions;
 
 import com.google.common.collect.Lists;
 
@@ -61,7 +61,7 @@ public class NormalExample implements Runnable
       withCovariance(covar); 
       //isotropic(2);
     
-    SimpleRFSampler sampler = SimpleRFSampler.initializeRFWithLBFGS(energy, samplerOptions);
+    GlobalRFSampler sampler = GlobalRFSampler.initializeRFWithLBFGS(energy, samplerOptions);
     Random rand = new Random(134);
     System.out.println("Sampling " + nIterations + " events");
     sampler.iterate(rand, nIterations);

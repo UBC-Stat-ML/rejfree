@@ -6,7 +6,7 @@ import java.util.Map;
 
 import com.beust.jcommander.internal.Maps;
 
-import rejfree.SimpleRFSampler.RFSamplerOptions;
+import rejfree.GlobalRFSampler.RFSamplerOptions;
 import bayonet.distributions.Normal.MeanVarianceParameterization;
 import blang.MCMCAlgorithm;
 import blang.MCMCFactory;

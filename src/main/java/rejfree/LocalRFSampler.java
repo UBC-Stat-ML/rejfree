@@ -12,7 +12,7 @@ import java.util.Random;
 
 import org.jblas.DoubleMatrix;
 
-import rejfree.SimpleRFSampler.RFSamplerOptions;
+import rejfree.GlobalRFSampler.RFSamplerOptions;
 import bayonet.distributions.Exponential;
 import blang.ProbabilityModel;
 import blang.MCMCFactory.Factories;
@@ -66,51 +66,6 @@ public class LocalRFSampler
     RecordFullTrajectory processor = new RecordFullTrajectory(variablesIndexer);
     rayProcessors.add(processor);
     return processor;
-  }
-  
-  public static class RecordFullTrajectory implements RayProcessor
-  {
-    public final List<DoubleMatrix> samples = new ArrayList<>();
-    public final Indexer<RealVariable> variablesIndexer;
-    private double lastT = 0.0;
-    
-    public RecordFullTrajectory(Indexer<RealVariable> variablesIndexer)
-    {
-      super();
-      this.variablesIndexer = variablesIndexer;
-    }
-
-    @Override
-    public void processRay(RealVariable var, TrajectoryRay ray,
-        double timeTheRayEnds, LocalRFSampler sampler)
-    {
-      if (timeTheRayEnds == lastT)
-        return;
-      sampler.updateAllVariables(timeTheRayEnds);
-      process(sampler);
-      lastT = timeTheRayEnds;
-    }
-
-    @Override
-    public void init(LocalRFSampler sampler)
-    {
-      process(sampler);
-    }
-    
-    private void process(LocalRFSampler sampler)
-    {
-      DoubleMatrix current = new DoubleMatrix(variablesIndexer.size());
-      int i = 0;
-      for (RealVariable var : variablesIndexer.objectsList())
-        current.put(i++, var.getValue());
-      samples.add(current);
-    }
-  }
-  
-  public static interface RayProcessor
-  {
-    public void init(LocalRFSampler sampler);
-    public void processRay(RealVariable var, TrajectoryRay ray, double timeTheRayEnds, LocalRFSampler sampler);
   }
   
   private int pointCollectIter = 0;
@@ -300,7 +255,7 @@ public class LocalRFSampler
     variable.setValue(ray.position(currentTime));
   }
   
-  private void updateAllVariables(double currentTime)
+  void updateAllVariables(double currentTime)
   {
     for (Object var : model.getLatentVariables())
       updateVariable(var, currentTime);

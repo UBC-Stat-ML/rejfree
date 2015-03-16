@@ -15,7 +15,7 @@ import briefj.opt.Option;
 
 import static rejfree.StaticUtils.*;
 
-public class SimpleRFSampler
+public class GlobalRFSampler
 {
   /**
    * *Negative* log density of the target distribution.
@@ -48,7 +48,7 @@ public class SimpleRFSampler
    * 
    * @param energy The negative log density of the target, assumed to be convex
    */
-  public SimpleRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition, RFSamplerOptions options)
+  public GlobalRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition, RFSamplerOptions options)
   {
     this.energy = energy;
     this.options = options;
@@ -56,17 +56,17 @@ public class SimpleRFSampler
     this.currentVelocity = null; 
   }
   
-  public SimpleRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition)
+  public GlobalRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition)
   {
     this(energy, initialPosition, new RFSamplerOptions());
   }
   
-  public static SimpleRFSampler initializeRFWithLBFGS(DifferentiableFunction energy, RFSamplerOptions options)
+  public static GlobalRFSampler initializeRFWithLBFGS(DifferentiableFunction energy, RFSamplerOptions options)
   {
-    return new SimpleRFSampler(energy, optimizePosition(energy), options);
+    return new GlobalRFSampler(energy, optimizePosition(energy), options);
   }
   
-  public static SimpleRFSampler initializeRFWithLBFGS(DifferentiableFunction energy)
+  public static GlobalRFSampler initializeRFWithLBFGS(DifferentiableFunction energy)
   {
     return initializeRFWithLBFGS(energy, new RFSamplerOptions());
   }
