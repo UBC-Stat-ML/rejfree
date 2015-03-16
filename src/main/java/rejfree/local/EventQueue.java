@@ -1,4 +1,4 @@
-package rejfree;
+package rejfree.local;
 
 import java.util.HashMap;
 import java.util.Map;

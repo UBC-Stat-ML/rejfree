@@ -1,4 +1,4 @@
-package rejfree;
+package rejfree.local;
 
 import org.jblas.DoubleMatrix;
 

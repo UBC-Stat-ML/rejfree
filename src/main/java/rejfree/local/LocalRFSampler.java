@@ -1,4 +1,4 @@
-package rejfree;
+package rejfree.local;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -12,6 +12,7 @@ import java.util.Random;
 
 import org.jblas.DoubleMatrix;
 
+import rejfree.StaticUtils;
 import rejfree.GlobalRFSampler.RFSamplerOptions;
 import bayonet.distributions.Exponential;
 import blang.ProbabilityModel;
@@ -212,7 +213,7 @@ public class LocalRFSampler
   {
     DoubleMatrix gradient = collisionFactor.gradient();
     DoubleMatrix oldVelocity = getVelocityMatrix(collisionFactor);
-    DoubleMatrix newVelocity = Bouncer.bounce(oldVelocity, gradient);
+    DoubleMatrix newVelocity = StaticUtils.bounce(oldVelocity, gradient);
     
     final int length = newVelocity.length;
     for (int i = 0; i < length; i++)
@@ -255,7 +256,7 @@ public class LocalRFSampler
     variable.setValue(ray.position(currentTime));
   }
   
-  void updateAllVariables(double currentTime)
+  public void updateAllVariables(double currentTime)
   {
     for (Object var : model.getLatentVariables())
       updateVariable(var, currentTime);

@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.jblas.DoubleMatrix;
 
+import rejfree.local.CollisionFactor;
 import blang.annotations.FactorComponent;
 import blang.factors.FactorList;
 import blang.variables.RealVariable;

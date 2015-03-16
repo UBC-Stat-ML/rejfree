@@ -9,7 +9,7 @@ import bayonet.math.NumericalUtils;
 
 
 
-public class NormalEnergyTest
+public class TestNormalEnergy
 {
   @Test
   public void test()

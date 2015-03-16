@@ -27,4 +27,16 @@ public class StaticUtils
     double norm = random.norm2();
     return random.muli(1.0/norm);
   }
+
+  /**
+   * 
+   * @param oldVelocity Row vector of velocities before collision
+   * @param gradient Row vector of the gradient of the log density at collision
+   * @return Row vector of updated velocities
+   */
+  public static DoubleMatrix bounce(DoubleMatrix oldVelocity, DoubleMatrix gradient)
+  {
+    final double scale = 2.0 * gradient.dot(oldVelocity) / gradient.dot(gradient);
+    return oldVelocity.sub(gradient.mul(scale)); 
+  }
 }

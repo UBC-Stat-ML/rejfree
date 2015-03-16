@@ -12,6 +12,8 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
+import rejfree.local.LocalRFSampler;
+import rejfree.local.RecordFullTrajectory;
 import bayonet.math.NumericalUtils;
 import bayonet.opt.DifferentiableFunction;
 import blang.ProbabilityModel;
@@ -19,8 +21,14 @@ import blang.annotations.DefineFactor;
 import blang.variables.RealVariable;
 
 
-
-public class CheckTrajWithAnalyticNormalCalc
+/**
+ * Test the local and global samplers using the analytic formulae
+ * available for the normal case.
+ * 
+ * @author Alexandre Bouchard (alexandre.bouchard@gmail.com)
+ *
+ */
+public class TestAnalyticNormal
 {
   /**
    * Note: trajectories should not have refreshments

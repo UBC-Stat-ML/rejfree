@@ -1,4 +1,4 @@
-package rejfree;
+package rejfree.local;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,13 +24,13 @@ public class RecordFullTrajectory implements RayProcessor
 
   @Override
   public void processRay(RealVariable var, TrajectoryRay ray,
-      double timeTheRayEnds, LocalRFSampler sampler)
+      double time, LocalRFSampler sampler)
   {
-    if (timeTheRayEnds == lastT)
+    if (time == lastT)
       return;
-    sampler.updateAllVariables(timeTheRayEnds);
+    sampler.updateAllVariables(time);
     process(sampler);
-    lastT = timeTheRayEnds;
+    lastT = time;
   }
 
   @Override

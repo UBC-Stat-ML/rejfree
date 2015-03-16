@@ -108,7 +108,7 @@ public class GlobalRFSampler
       currentPosition = position(currentPosition, currentVelocity, eventTime);
       trajectory.add(currentPosition);
       if (collisionOccurs)
-        currentVelocity = Bouncer.bounce(currentVelocity, gradient(currentPosition));
+        currentVelocity = StaticUtils.bounce(currentVelocity, gradient(currentPosition));
       else
         currentVelocity = refreshVelocity(currentPosition, currentVelocity, rand); 
     }

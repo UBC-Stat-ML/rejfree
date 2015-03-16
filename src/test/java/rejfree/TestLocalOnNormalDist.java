@@ -12,6 +12,7 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
+import rejfree.local.LocalRFSampler;
 import bayonet.math.JBlasUtils;
 import blang.ProbabilityModel;
 import blang.annotations.DefineFactor;

@@ -21,7 +21,7 @@ public class TestBounce
     DoubleMatrix 
       gradient = DoubleMatrix.rand(dim);
     
-    DoubleMatrix bounced = Bouncer.bounce(gradient, gradient);
+    DoubleMatrix bounced = StaticUtils.bounce(gradient, gradient);
     Assert.assertEquals(bounced.distance1(gradient.mul(-1.0)), 0.0, NumericalUtils.THRESHOLD);
   }
   
@@ -36,7 +36,7 @@ public class TestBounce
       velocityBefore = DoubleMatrix.rand(dim);
     
     double normBefore = velocityBefore.norm2();
-    DoubleMatrix bounced = Bouncer.bounce(velocityBefore, gradient);
+    DoubleMatrix bounced = StaticUtils.bounce(velocityBefore, gradient);
     double normAfter = bounced.norm2();
     System.out.println(normBefore);
     System.out.println(normAfter);

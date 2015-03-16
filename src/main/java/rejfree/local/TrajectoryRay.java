@@ -1,4 +1,4 @@
-package rejfree;
+package rejfree.local;
 
 
 
@@ -15,15 +15,15 @@ public class TrajectoryRay
   /*
    * last collision time
    */
-  private final double t;
+  public final double t;
   
   /*
    * position and velocity right after that last collision
    */
-  private final double position_t;
-  final double velocity_t;
+  public final double position_t;
+  public final double velocity_t;
   
-  TrajectoryRay(double t, double position_t, double velocity_t)
+  public TrajectoryRay(double t, double position_t, double velocity_t)
   {
     this.t = t;
     this.position_t = position_t;
