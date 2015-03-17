@@ -91,8 +91,6 @@ public class PegasusConvexCollisionSolver
     return (xFinal - xInit) / v;
   }
   
-
-  
   private static double findUpperBound(UnivariateFunction lineSolvingFunction)
   {
     double result = 1.0;

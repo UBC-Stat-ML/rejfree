@@ -65,15 +65,8 @@ public class TestAnalyticNormal
       
       double analytic_xvPrime = analytic_xvPrime(e, xv);
       
-//      System.out.println("xv = " + xv);
-      
-//      System.out.println("s:\texact=" + analytic_s + ", \tnumerical=" + s);
-//      System.out.println("xvPrim:\texact=" + analytic_xvPrime + ", \tnumerical=" + xvPrime);
-      
       Assert.assertEquals(analytic_s, s, NumericalUtils.THRESHOLD);
       Assert.assertEquals(analytic_xvPrime, xvPrime, NumericalUtils.THRESHOLD);
-      
-//      System.out.println("---");
     }
   }
   
@@ -81,7 +74,10 @@ public class TestAnalyticNormal
   public void testLocalRFSamplerWithIsotropicNormal()
   {
     Random rand = new Random(1);
-    ProbabilityModel model = new ProbabilityModel(new NormalModel());
+    NormalModel modelSpec = new NormalModel();
+    modelSpec.v1.setValue(0.1);
+    modelSpec.v2.setValue(0.2);
+    ProbabilityModel model = new ProbabilityModel(modelSpec);
     LocalRFSampler sampler = new LocalRFSampler(model , options);
     RecordFullTrajectory rayProcessor = sampler.addRecordFullTrajectoryProcessor();
     sampler.iterate(rand, nIters);
@@ -92,7 +88,8 @@ public class TestAnalyticNormal
   public void testSimpleRFSamplerWithIsotropicNormal()
   {
     Random rand = new Random(1);
-    GlobalRFSampler sampler = GlobalRFSampler.initializeRFWithLBFGS(energy, options);
+    DoubleMatrix initialPosition = new DoubleMatrix(new double[]{0.1, 0.2});
+    GlobalRFSampler sampler = new GlobalRFSampler(energy, initialPosition, options);
     sampler.iterate(rand, nIters);
     checkAgainsAnalytic(sampler.getTrajectory());
   }

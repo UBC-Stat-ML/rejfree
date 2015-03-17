@@ -17,6 +17,11 @@ public class PlotTrajectory extends RJavaBridge
   public double [] x0, y0, x1, y1;
   public double [] xBounds, yBounds;
   
+  public static PlotTrajectory fromFirstTwoDimensions(List<DoubleMatrix> points)
+  {
+    return new PlotTrajectory(points, 0, 1);
+  }
+  
   public PlotTrajectory(List<DoubleMatrix> points, int xIndex, int yIndex)
   {
     double minX = Double.POSITIVE_INFINITY, maxX = Double.NEGATIVE_INFINITY, minY = Double.POSITIVE_INFINITY, maxY = Double.NEGATIVE_INFINITY;

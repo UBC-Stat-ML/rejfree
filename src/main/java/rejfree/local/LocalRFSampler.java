@@ -99,7 +99,7 @@ public class LocalRFSampler
   {
     if (trajectories.containsKey(variable))
       throw new RuntimeException();
-    trajectories.put(variable, new TrajectoryRay(refreshmentTime, 0.0, currentVelocity));
+    trajectories.put(variable, new TrajectoryRay(refreshmentTime, variable.getValue(), currentVelocity));
   }
 
   public void iterate(Random rand, int numberOfIterations)
