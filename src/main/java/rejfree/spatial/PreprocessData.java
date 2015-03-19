@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.jblas.DoubleMatrix;
 
 import com.google.common.base.Joiner;
 
@@ -27,13 +26,31 @@ import briefj.run.Results;
 
 
 
+/**
+ * NB: using convention of data: (lati,long)
+ * @author Alexandre Bouchard (alexandre.bouchard@gmail.com)
+ *
+ */
 public class PreprocessData implements Runnable
 {
   @Option
-  public int streetThreshold = 10;
+  public int streetThreshold = 2;
   
   @Option
   public File dataInput = new File("data/accidents.csv");
+  
+  @Option public double discretizationLen = 300;// meters
+  
+  /*
+   * Approx coordinates for core Plateau Mont-Royal + Latin district:
+   * 
+   * Parc et St Jo    45.518989, -73.594328
+   * Mentana et St Jo  45.529452, -73.585079
+   * Notre Dame et Wolfe 45.514899, -73.549910
+   * St Sulp et la commune 45.514899, -73.549910
+   */
+  public double [] limitPolygon_lat = new double[]{45.518989,45.529452,45.514899,45.514899};
+  public double [] limitPolygon_long = new double[]{-73.594328,-73.585079,-73.549910,-73.549910};
   
   public static void main(String [] args)
   {
@@ -57,7 +74,8 @@ public class PreprocessData implements Runnable
         longi = fields.get("long");
       street1 = cleanStreetName(street1);
       street2 = cleanStreetName(street2);
-      if (street1.isEmpty() || street2.isEmpty() || 
+      if (!keep(Double.parseDouble(lati), Double.parseDouble(longi)) || 
+          street1.isEmpty() || street2.isEmpty() || 
           countsByStreet.getCount(street1) < streetThreshold ||
           countsByStreet.getCount(street2) < streetThreshold)
         continue loop;
@@ -86,6 +104,60 @@ public class PreprocessData implements Runnable
     loadData();
     Map<String,List<String>> sortedIntersections = sortIntersections();
     output(sortedIntersections);
+    outputDiscretized(sortedIntersections);
+  }
+  
+  private boolean keep(double lat, double longi)
+  {
+    if (limitPolygon_lat == null)
+      return true;
+    return SpatialUtils.contains(limitPolygon_lat, limitPolygon_long, lat, longi);
+  }
+
+  private void outputDiscretized(Map<String, List<String>> sortedIntersections)
+  {
+    File csvOutputFile = Results.getFileInResultFolder("output-discretized.csv");
+    PrintWriter 
+      output  = BriefIO.output(csvOutputFile);
+    
+    int nRows = 0;
+    output.println("streetId,streetName,intersectionIndexForThisStreet,otherStreetName,otherStreetIndex,count");
+    for (int streetId = 0; streetId < streetIndexer.size(); streetId++)
+    {
+      String street = streetIndexer.i2o(streetId);
+      List<String> sortedOtherStreets = sortedIntersections.get(street);
+      
+      int intersectionIndexForThisStreetWithDisc = 0;
+      for (int intersectionIndexForThisStreet = 0; intersectionIndexForThisStreet < sortedOtherStreets.size(); intersectionIndexForThisStreet++)
+      {
+        String otherStreet = sortedOtherStreets.get(intersectionIndexForThisStreet);
+        double distance = -1.0;
+        if (intersectionIndexForThisStreet < sortedOtherStreets.size() - 1)
+        {
+          String nextStreet = sortedOtherStreets.get(intersectionIndexForThisStreet + 1);
+          distance = distance(
+              asArray(cornerLocations.get(UnorderedPair.of(street, otherStreet))),
+              asArray(cornerLocations.get(UnorderedPair.of(street, nextStreet))));
+        }
+        int otherStreetId = streetIndexer.o2i(otherStreet);
+        int count = (int) countsByIntersect.getCount(UnorderedPair.of(street, otherStreet));
+        output.println(Joiner.on(",").join(streetId, street, intersectionIndexForThisStreetWithDisc++, otherStreet, otherStreetId, count));
+        nRows++;
+        if (distance != -1)
+        {
+          while (distance > discretizationLen)
+          {
+            output.println(Joiner.on(",").join(streetId, street, intersectionIndexForThisStreetWithDisc++, "?", -1, 0));
+            nRows++;
+            distance -= discretizationLen;
+          }
+        }
+      }
+    }
+    output.close();
+    System.out.println("Number of rows (discretized): " + nRows);
+    File rOutputFile = Results.getFileInResultFolder("output-discretized.r");
+    createRDumpFile(csvOutputFile, rOutputFile, "otherStreetIndex", "intersectionIndexForThisStreet", "count", "streetId");
   }
 
   private void output(Map<String, List<String>> sortedIntersections)
@@ -94,6 +166,7 @@ public class PreprocessData implements Runnable
     PrintWriter 
       output  = BriefIO.output(csvOutputFile);
     
+    int nRows = 0;
     output.println("streetId,streetName,intersectionIndexForThisStreet,otherStreetName,otherStreetIndex,distanceToNextInThisStreet,count");
     for (int streetId = 0; streetId < streetIndexer.size(); streetId++)
     {
@@ -114,11 +187,13 @@ public class PreprocessData implements Runnable
         int otherStreetId = streetIndexer.o2i(otherStreet);
         int count = (int) countsByIntersect.getCount(UnorderedPair.of(street, otherStreet));
         output.println(Joiner.on(",").join(streetId, street, intersectionIndexForThisStreet, otherStreet, otherStreetId, distance, count));
+        nRows++;
       }
     }
+    System.out.println("Number of rows (non-discretized): " + nRows);
     output.close();
     File rOutputFile = Results.getFileInResultFolder("output.r");
-    createRDumpFile(csvOutputFile, rOutputFile);
+    createRDumpFile(csvOutputFile, rOutputFile, "otherStreetIndex", "intersectionIndexForThisStreet", "count", "distanceToNextInThisStreet", "streetId");
   }
 
   private Map<String, List<String>> sortIntersections()
@@ -177,11 +252,11 @@ public class PreprocessData implements Runnable
     return countsByStreet;
   }
 
-  private static void createRDumpFile(File csvOutputFile, File rOutputFile)
+  private static void createRDumpFile(File csvOutputFile, File rOutputFile, String ... fields)
   {
     Map<String,List<String>> columns = new HashMap<>();
     for (Map<String,String> row : BriefIO.readLines(csvOutputFile).indexCSV())
-      for (String key : new String [] {"otherStreetIndex", "intersectionIndexForThisStreet", "count", "distanceToNextInThisStreet", "streetId"})
+      for (String key : fields)
         BriefMaps.getOrPutList(columns, key).add((row.get(key)));
     PrintWriter output = BriefIO.output(rOutputFile);
     for (String key : columns.keySet())
@@ -189,11 +264,12 @@ public class PreprocessData implements Runnable
     output.println("N <- " + BriefCollections.pick(columns.values()).size());
     output.close();
   }
+  
 
-  private double distance(double[] asArray, double[] asArray2)
+
+  private double distance(double[] c1, double[] c2)
   {
-    DoubleMatrix v1 = new DoubleMatrix(asArray), v2 = new DoubleMatrix(asArray2);
-    return v1.distance2(v2);
+    return SpatialUtils.distance(SpatialCoordinate.fromArray(c1), SpatialCoordinate.fromArray(c2));
   }
 
   private static String delta(
