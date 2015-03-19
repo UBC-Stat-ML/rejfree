@@ -12,11 +12,10 @@ parameters {
 }
 model {
   slope ~ lognormal(0,1);
-  intercept ~ lognormal(0,1);
   for (i in 1:N) {
     if (streetId[i] < otherStreetIndex[i]) // avoid overgenerating the data
       count[i] ~ poisson(exp(intensity[1+streetId[i]]) + exp(intensity[1+otherStreetIndex[i]]));
     if (distanceToNextInThisStreet[i] != -1.0)
-      intensity[i+1] ~ normal(intensity[i], slope * distanceToNextInThisStreet[i] + intercept);
+      intensity[i+1] ~ normal(intensity[i], slope * distanceToNextInThisStreet[i] + 0.0001);
   }
 }
