@@ -1,0 +1,8 @@
+#!/bin/bash
+
+source runJava.sh
+SOURCE="${BASH_SOURCE[0]}"
+
+STAN_HOME=/Users/bouchard/Documents/workspace-cpp/cmdstan
+
+runJava $SOURCE rejfree.spatial.RunStan -stanHome $STAN_HOME $@

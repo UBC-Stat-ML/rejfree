@@ -14,11 +14,11 @@ import briefj.run.Results;
 
 public class RunStan implements Runnable
 {
-  @Option
-  public File stanHome = new File("/Users/bouchard/Documents/workspace-cpp/cmdstan");
+  @Option(required = true)
+  public File stanHome;
   
-  @Option
-  public File data = new File("/Users/bouchard/Documents/experiments/rejfree-spatial/results/all/2015-03-17-20-33-01-Q6rfxVgn.exec/output.r");
+  @Option(required = true)
+  public File data;
 
   @Option
   public int thin = 1;
