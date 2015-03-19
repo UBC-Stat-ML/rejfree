@@ -39,7 +39,8 @@ dependencies {
   compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.3.2'
   compile 'com.google.code.gson:gson:2.3.1'
   compile 'org.jblas:jblas:1.2.3'
-  compile group: 'ca.ubc.stat', name: 'bayonet', version: '2.3.12'
+  compile group: 'ca.ubc.stat', name: 'bayonet', version: '2.3.13'
+  compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24'
 }
 
 task(tutorialj, dependsOn: ['build','testClasses'], type: JavaExec) {
@@ -79,6 +80,17 @@ buildscript {
   dependencies {
     classpath 'com.github.ben-manes:gradle-versions-plugin:0.5-beta-1'
   }
+}
+
+if (JavaVersion.current().isJava8Compatible()) {
+    allprojects {
+        //noinspection SpellCheckingInspection
+        tasks.withType(Javadoc) {
+            // disable the crazy super-strict doclint tool in Java 8
+            //noinspection SpellCheckingInspection
+            options.addStringOption('Xdoclint:none', '-quiet')
+        }
+    }
 }
 
 apply plugin:'application'  
