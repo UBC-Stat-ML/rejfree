@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.common.base.Joiner;
@@ -18,6 +19,7 @@ import briefj.BriefCollections;
 import briefj.BriefIO;
 import briefj.BriefMaps;
 import briefj.Indexer;
+import briefj.OutputManager;
 import briefj.collections.Counter;
 import briefj.collections.UnorderedPair;
 import briefj.opt.Option;
@@ -99,11 +101,12 @@ public class PreprocessData implements Runnable
     System.out.println("counstByStreet: " + countsByStreet);
   }
   
+  
   public void run()
   {
     loadData();
     Map<String,List<String>> sortedIntersections = sortIntersections();
-    output(sortedIntersections);
+//    output(sortedIntersections);
     outputDiscretized(sortedIntersections);
   }
   
@@ -116,18 +119,24 @@ public class PreprocessData implements Runnable
 
   private void outputDiscretized(Map<String, List<String>> sortedIntersections)
   {
-    File csvOutputFile = Results.getFileInResultFolder("output-discretized.csv");
-    PrintWriter 
-      output  = BriefIO.output(csvOutputFile);
+    int unkIndex = 0;
+//    File csvOutputFile = Results.getFileInResultFolder("output-discretized.csv");
+//    PrintWriter 
+//      output  = BriefIO.output(csvOutputFile);
     
-    int nRows = 0;
-    output.println("streetId,streetName,intersectionIndexForThisStreet,otherStreetName,otherStreetIndex,count");
+    OutputManager output = new OutputManager();
+    output.setOutputFolder(Results.getResultFolder());
+    
+    Indexer<String> streetAtCornerIndexer = new Indexer<String>();
+    
+//    int nRows = 0;
+//    output.println("streetId,streetName,intersectionIndexForThisStreet,otherStreetName,otherStreetIndex,count");
     for (int streetId = 0; streetId < streetIndexer.size(); streetId++)
     {
       String street = streetIndexer.i2o(streetId);
       List<String> sortedOtherStreets = sortedIntersections.get(street);
       
-      int intersectionIndexForThisStreetWithDisc = 0;
+      String prevStreetAtCorner = null;
       for (int intersectionIndexForThisStreet = 0; intersectionIndexForThisStreet < sortedOtherStreets.size(); intersectionIndexForThisStreet++)
       {
         String otherStreet = sortedOtherStreets.get(intersectionIndexForThisStreet);
@@ -139,62 +148,110 @@ public class PreprocessData implements Runnable
               asArray(cornerLocations.get(UnorderedPair.of(street, otherStreet))),
               asArray(cornerLocations.get(UnorderedPair.of(street, nextStreet))));
         }
-        int otherStreetId = streetIndexer.o2i(otherStreet);
         int count = (int) countsByIntersect.getCount(UnorderedPair.of(street, otherStreet));
-        output.println(Joiner.on(",").join(streetId, street, intersectionIndexForThisStreetWithDisc++, otherStreet, otherStreetId, count));
-        nRows++;
+        
+        //output.println(Joiner.on(",").join(streetId, street, intersectionIndexForThisStreetWithDisc++, otherStreet, otherStreetId, count));
+        
+        {
+          String streetAtCorner1 = street + "@" + otherStreet; streetAtCornerIndexer.addToIndex(streetAtCorner1); int streetAtCorner1Index = streetAtCornerIndexer.o2i(streetAtCorner1);
+          String streetAtCorner2 = otherStreet + "@" + street; streetAtCornerIndexer.addToIndex(streetAtCorner2); int streetAtCorner2Index = streetAtCornerIndexer.o2i(streetAtCorner2);
+          
+          if (streetAtCorner1Index < streetAtCorner2Index)
+            output.write("streetAtCornerAccidents", 
+                "streetAtCorner1", streetAtCorner1,
+                "streetAtCorner2", streetAtCorner2,
+                "streetAtCorner1Index", streetAtCorner1Index,
+                "streetAtCorner2Index", streetAtCorner2Index,
+                "accidentCount", count);
+          
+          output.write("previousStreetAtCorners", 
+              "currentStreetAtCorner", streetAtCorner1,
+              "previousStreetAtCorner", (prevStreetAtCorner == null ? "unk" : prevStreetAtCorner),
+              "currentStreetAtCornerIndex", streetAtCorner1Index,
+              "previousStreetAtCornerIndex", (prevStreetAtCorner == null ? -1 : streetAtCornerIndexer.o2i(prevStreetAtCorner)));
+              
+          prevStreetAtCorner = streetAtCorner1;
+        }
+        
+//        nRows++;
         if (distance != -1)
         {
           while (distance > discretizationLen)
           {
-            output.println(Joiner.on(",").join(streetId, street, intersectionIndexForThisStreetWithDisc++, "?", -1, 0));
-            nRows++;
+            String streetAtCorner = street + "@unk" + (unkIndex++);
+            streetAtCornerIndexer.addToIndex(streetAtCorner);
+            int streetAtCornerIndex = streetAtCornerIndexer.o2i(streetAtCorner);
+            
+            output.write("streetAtCornerAccidents", 
+                "streetAtCorner1", streetAtCorner,
+                "streetAtCorner2", "unk",
+                "streetAtCorner1Index", streetAtCornerIndex,
+                "streetAtCorner2Index", -1,
+                "accidentCount", 0);
+            
+            output.write("previousStreetAtCorners", 
+                "currentStreetAtCorner", streetAtCorner,
+                "previousStreetAtCorner", (prevStreetAtCorner == null ? "unk" : prevStreetAtCorner),
+                "currentStreetAtCornerIndex", streetAtCornerIndex,
+                "previousStreetAtCornerIndex", (prevStreetAtCorner == null ? -1 : streetAtCornerIndexer.o2i(prevStreetAtCorner)));
+            
+            prevStreetAtCorner = streetAtCorner;
+//            output.println(Joiner.on(",").join(streetId, street, intersectionIndexForThisStreetWithDisc++, "?", -1, 0));
+//            nRows++;
             distance -= discretizationLen;
           }
         }
       }
     }
     output.close();
-    System.out.println("Number of rows (discretized): " + nRows);
-    File rOutputFile = Results.getFileInResultFolder("output-discretized.r");
-    createRDumpFile(csvOutputFile, rOutputFile, "otherStreetIndex", "intersectionIndexForThisStreet", "count", "streetId");
-  }
-
-  private void output(Map<String, List<String>> sortedIntersections)
-  {
-    File csvOutputFile = Results.getFileInResultFolder("output.csv");
-    PrintWriter 
-      output  = BriefIO.output(csvOutputFile);
     
-    int nRows = 0;
-    output.println("streetId,streetName,intersectionIndexForThisStreet,otherStreetName,otherStreetIndex,distanceToNextInThisStreet,count");
-    for (int streetId = 0; streetId < streetIndexer.size(); streetId++)
-    {
-      String street = streetIndexer.i2o(streetId);
-      List<String> sortedOtherStreets = sortedIntersections.get(street);
-      
-      for (int intersectionIndexForThisStreet = 0; intersectionIndexForThisStreet < sortedOtherStreets.size(); intersectionIndexForThisStreet++)
-      {
-        String otherStreet = sortedOtherStreets.get(intersectionIndexForThisStreet);
-        double distance = -1.0;
-        if (intersectionIndexForThisStreet < sortedOtherStreets.size() - 1)
-        {
-          String nextStreet = sortedOtherStreets.get(intersectionIndexForThisStreet + 1);
-          distance = distance(
-              asArray(cornerLocations.get(UnorderedPair.of(street, otherStreet))),
-              asArray(cornerLocations.get(UnorderedPair.of(street, nextStreet))));
-        }
-        int otherStreetId = streetIndexer.o2i(otherStreet);
-        int count = (int) countsByIntersect.getCount(UnorderedPair.of(street, otherStreet));
-        output.println(Joiner.on(",").join(streetId, street, intersectionIndexForThisStreet, otherStreet, otherStreetId, distance, count));
-        nRows++;
-      }
-    }
-    System.out.println("Number of rows (non-discretized): " + nRows);
-    output.close();
-    File rOutputFile = Results.getFileInResultFolder("output.r");
-    createRDumpFile(csvOutputFile, rOutputFile, "otherStreetIndex", "intersectionIndexForThisStreet", "count", "distanceToNextInThisStreet", "streetId");
+//    System.out.println("Number of rows (discretized): " + nRows);
+    File rOutputFile = Results.getFileInResultFolder("output-discretized.r");
+    PrintWriter out = BriefIO.output(rOutputFile);
+    addRDumpData(Results.getFileInResultFolder("previousStreetAtCorners.csv"), out, "currentStreetAtCornerIndex", "previousStreetAtCornerIndex");
+    addRDumpData(Results.getFileInResultFolder("streetAtCornerAccidents.csv"), out, "streetAtCorner1Index", "streetAtCorner2Index", "accidentCount");
+    out.println("nStreetAtCorners <- " + streetAtCornerIndexer.size());
+    
+    out.close();
+//    createRDumpFile(csvOutputFile, streetIndexer.size(), rOutputFile, "otherStreetIndex", "intersectionIndexForThisStreet", "count", "streetId");
   }
+  
+
+//  private void output(Map<String, List<String>> sortedIntersections)
+//  {
+//    File csvOutputFile = Results.getFileInResultFolder("output.csv");
+//    PrintWriter 
+//      output  = BriefIO.output(csvOutputFile);
+//    
+//    int nRows = 0;
+//    output.println("streetId,streetName,intersectionIndexForThisStreet,otherStreetName,otherStreetIndex,distanceToNextInThisStreet,count");
+//    for (int streetId = 0; streetId < streetIndexer.size(); streetId++)
+//    {
+//      String street = streetIndexer.i2o(streetId);
+//      List<String> sortedOtherStreets = sortedIntersections.get(street);
+//      
+//      for (int intersectionIndexForThisStreet = 0; intersectionIndexForThisStreet < sortedOtherStreets.size(); intersectionIndexForThisStreet++)
+//      {
+//        String otherStreet = sortedOtherStreets.get(intersectionIndexForThisStreet);
+//        double distance = -1.0;
+//        if (intersectionIndexForThisStreet < sortedOtherStreets.size() - 1)
+//        {
+//          String nextStreet = sortedOtherStreets.get(intersectionIndexForThisStreet + 1);
+//          distance = distance(
+//              asArray(cornerLocations.get(UnorderedPair.of(street, otherStreet))),
+//              asArray(cornerLocations.get(UnorderedPair.of(street, nextStreet))));
+//        }
+//        int otherStreetId = streetIndexer.o2i(otherStreet);
+//        int count = (int) countsByIntersect.getCount(UnorderedPair.of(street, otherStreet));
+//        output.println(Joiner.on(",").join(streetId, street, intersectionIndexForThisStreet, otherStreet, otherStreetId, distance, count));
+//        nRows++;
+//      }
+//    }
+//    System.out.println("Number of rows (non-discretized): " + nRows);
+//    output.close();
+//    File rOutputFile = Results.getFileInResultFolder("output.r");
+//    createRDumpFile(csvOutputFile, streetIndexer.size(), rOutputFile, "otherStreetIndex", "intersectionIndexForThisStreet", "count", "distanceToNextInThisStreet", "streetId");
+//  }
 
   private Map<String, List<String>> sortIntersections()
   {
@@ -252,20 +309,17 @@ public class PreprocessData implements Runnable
     return countsByStreet;
   }
 
-  private static void createRDumpFile(File csvOutputFile, File rOutputFile, String ... fields)
+  private static void addRDumpData(File csvFile, PrintWriter output, String ... fields)
   {
     Map<String,List<String>> columns = new HashMap<>();
-    for (Map<String,String> row : BriefIO.readLines(csvOutputFile).indexCSV())
+    for (Map<String,String> row : BriefIO.readLines(csvFile).indexCSV())
       for (String key : fields)
         BriefMaps.getOrPutList(columns, key).add((row.get(key)));
-    PrintWriter output = BriefIO.output(rOutputFile);
     for (String key : columns.keySet())
       output.println("" + key + " <- c(" + Joiner.on(",").join(columns.get(key)) + ")");
-    output.println("N <- " + BriefCollections.pick(columns.values()).size());
-    output.close();
+    output.println("n" + StringUtils.capitalize(csvFile.getName().replaceAll("[.]csv$", "")) + " <- " + BriefCollections.pick(columns.values()).size());
   }
   
-
 
   private double distance(double[] c1, double[] c2)
   {
