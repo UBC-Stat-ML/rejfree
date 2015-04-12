@@ -6,7 +6,6 @@ import java.util.Map;
 
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
-import au.com.bytecode.opencsv.CSVParser;
 import briefj.BriefIO;
 import briefj.BriefMaps;
 import briefj.opt.Option;
