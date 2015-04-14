@@ -23,13 +23,13 @@ parameters {
   
   // controls spatial smoothing on the streets
   // larger values means that the logIntensity are more free to vary
-  real<lower=0> drift;
+  //real<lower=0> drift;
   
 }
 
 model {
 
-  drift ~ lognormal(0,1);
+  //drift ~ lognormal(0,1);
   
   // Geographic prior
   for (geoIndex in 1:nPreviousStreetAtCorners) {
@@ -38,7 +38,9 @@ model {
       logIntensity[1+currentStreetAtCornerIndex[geoIndex]] ~ normal(0,10);
     } else {
       // center to the previous one
-      logIntensity[1+currentStreetAtCornerIndex[geoIndex]] ~ normal(logIntensity[1+previousStreetAtCornerIndex[geoIndex]], drift);//0.2);
+      logIntensity[1+currentStreetAtCornerIndex[geoIndex]] ~ normal(logIntensity[1+previousStreetAtCornerIndex[geoIndex]], 
+        //drift);
+        0.2);
     }
   }
   
