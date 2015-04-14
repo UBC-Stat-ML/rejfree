@@ -33,7 +33,7 @@ public class ConvolvedPoissonFactor implements CollisionFactor
     return new ConvolvedPoissonFactor(theta0, theta1, observation);
   }
   
-  private ConvolvedPoissonFactor(RealVariable theta0, RealVariable theta1,
+  public ConvolvedPoissonFactor(RealVariable theta0, RealVariable theta1,
       IntegerVariable observation)
   {
     this.theta0 = theta0;
@@ -69,7 +69,7 @@ public class ConvolvedPoissonFactor implements CollisionFactor
       if (isBinary())
       {
         double [] result = new double[2];
-        double factor = observation.getValue() / lambda(thetas) - 1.0;
+        double factor = ((double)observation.getValue()) / lambda(thetas) - 1.0;
         result[0] = - Math.exp(thetas[0]) * factor;
         result[1] = - Math.exp(thetas[1]) * factor;
         return result;

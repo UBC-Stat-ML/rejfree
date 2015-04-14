@@ -29,6 +29,8 @@ public class EventQueue<S>
   
   public void add(S event, double time)
   {
+    if (Double.isInfinite(time))
+      return;
     if (sortedEvents.containsKey(time))
       throw new RuntimeException("EventQueue does not support two events at the same time (t=" + time + ",event=" + event + ")");
     sortedEvents.put(time, event);

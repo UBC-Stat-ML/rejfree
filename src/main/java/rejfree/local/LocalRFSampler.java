@@ -184,7 +184,7 @@ public class LocalRFSampler
   {
     HashSet<Object> result = new LinkedHashSet<>();
     for (CollisionFactor factor : neighborFactors)
-      for (Object variable : model.neighborVariables(factor))
+      for (Object variable : model.neighborLatentVariables(factor))
         result.add(variable);
     return result;
   }

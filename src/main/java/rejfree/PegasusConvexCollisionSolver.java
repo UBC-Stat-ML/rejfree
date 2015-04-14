@@ -1,5 +1,8 @@
 package rejfree;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.commons.math3.analysis.solvers.PegasusSolver;
 import org.jblas.DoubleMatrix;
@@ -7,7 +10,8 @@ import org.jblas.DoubleMatrix;
 import bayonet.math.NumericalUtils;
 import bayonet.opt.DifferentiableFunction;
 import bayonet.opt.LBFGSMinimizer;
-
+import briefj.BriefLists;
+import briefj.run.Results;
 import static rejfree.StaticUtils.*;
 
 public class PegasusConvexCollisionSolver
@@ -18,6 +22,15 @@ public class PegasusConvexCollisionSolver
   {
     // go to minimum energy for free
     final DoubleMatrix directionalMin = lineMinimize(initialPoint, velocity, energy);//new DoubleMatrix(searcher.minimize(energy, initialPoint.data, velocity.data));
+    
+    // When this is used in the local version of the sampler, there can be situations
+    // where one of the factor is improper, causing some trajectory to not incur collision
+    // with respect to one of the factors. As long as the product of all the factors in 
+    // proper, the other factors will ensure that all the variables
+    // still get updated infinitely often
+    if (directionalMin == null)
+      return Double.POSITIVE_INFINITY;
+    
     final double time1 = time(initialPoint, directionalMin, velocity);
     
     // keep moving until an exponentially distributed amount of energy is exhausted
@@ -74,13 +87,22 @@ public class PegasusConvexCollisionSolver
       }
     };
     
+    
+    
     double minTime = new LBFGSMinimizer().minimize(lineRestricted, new double[]{0}, 1e-10)[0];
     
     if (minTime < 0.0)
       minTime = 0.0;
     
+    double minValue = lineRestricted.valueAt(new double[]{minTime});
+    double valuePlusDelta = lineRestricted.valueAt(new double[]{minTime + DELTA});
+    if (valuePlusDelta < minValue)
+      return null;
+    
     return position(initialPoint, velocity, minTime);
   }
+  
+  private static final double DELTA = 1.0;
 
   private static double time(DoubleMatrix initialPos, DoubleMatrix finalPosition, DoubleMatrix velocity)
   {

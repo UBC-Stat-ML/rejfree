@@ -19,6 +19,11 @@ public class NormalFactor implements CollisionFactor
   private final NormalEnergy energyFunction;
   private final PegasusConvexCollisionSolver solver;
   
+  public static NormalFactor withPrecision(List<RealVariable> variables, DoubleMatrix precision)
+  {
+    return new NormalFactor(variables, NormalEnergy.withPrecision(precision));
+  }
+  
   public static NormalFactor withCovariance(List<RealVariable> variables, DoubleMatrix covar)
   {
     return new NormalFactor(variables, NormalEnergy.withCovariance(covar));
