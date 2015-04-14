@@ -12,10 +12,10 @@ public class NormalEnergy implements DifferentiableFunction
 {
   private final DoubleMatrix precisionMatrix;
   
-  /**
-   * log((2pi)^{-k/2} + log(|sigma|^{-1/2}) 
-   */
-  private final double logConstant; 
+//  /**
+//   * log((2pi)^{-k/2} + log(|sigma|^{-1/2}) 
+//   */
+//  private final double logConstant; 
   
   public static NormalEnergy isotropic(int dim)
   {
@@ -28,11 +28,16 @@ public class NormalEnergy implements DifferentiableFunction
     return new NormalEnergy(JBlasUtils.inversePositiveMatrix(covar));
   }
   
+  public static NormalEnergy withPrecision(DoubleMatrix precision)
+  {
+    return new NormalEnergy(precision);
+  }
+  
   private NormalEnergy(DoubleMatrix precisionMatrix)
   {
     this.precisionMatrix = precisionMatrix;
-    double detPrecAbs = Math.abs(Decompose.lu(precisionMatrix).u.diag().prod());
-    this.logConstant = - (((double)precisionMatrix.getRows()) / 2.0) * Math.log(2.0 * Math.PI) + 0.5 * Math.log(detPrecAbs);
+//    double detPrecAbs = Math.abs(Decompose.lu(precisionMatrix).u.diag().prod());
+//    this.logConstant = - (((double)precisionMatrix.getRows()) / 2.0) * Math.log(2.0 * Math.PI) + 0.5 * Math.log(detPrecAbs);
   }
 
   @Override
@@ -45,8 +50,9 @@ public class NormalEnergy implements DifferentiableFunction
   public double valueAt(double[] x)
   {
     DoubleMatrix point = new DoubleMatrix(x);
-    return 0.5 * point.transpose().mmul(precisionMatrix).mmul(point).get(0) 
-        - logConstant; // Note: this would be added to the log density, but is subtracted here because we need the energy
+    return 0.5 * point.transpose().mmul(precisionMatrix).mmul(point).get(0)
+        ;
+        //- logConstant; // Note: this would be added to the log density, but is subtracted here because we need the energy
   }
 
   @Override
