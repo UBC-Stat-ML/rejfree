@@ -1,13 +1,18 @@
 package rejfree.spatial;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.jblas.DoubleMatrix;
 
+import bayonet.distributions.Bernoulli;
+import bayonet.distributions.Exponential;
 import bayonet.distributions.Poisson;
 import bayonet.opt.DifferentiableFunction;
 import blang.annotations.FactorArgument;
 import blang.variables.IntegerVariable;
 import blang.variables.RealVariable;
 import rejfree.PegasusConvexCollisionSolver;
+import rejfree.StaticUtils;
+import rejfree.local.CollisionContext;
 import rejfree.local.CollisionFactor;
 
 
@@ -99,11 +104,35 @@ public class ConvolvedPoissonFactor implements CollisionFactor
     return Poisson.logDensity(observation.getIntegerValue(), lambda());
   }
 
-  @Override
-  public double getCollisionDeltaTime(double exponentialRealization,
-      DoubleMatrix velocity)
+  
+  public Pair<Double,Boolean> getLowerBoundForCollisionDeltaTime(CollisionContext context) 
   {
-    return solver.collisionTime(getVector(), velocity, energyFunction, exponentialRealization);
+    if (isBinary())
+    {
+      // Use the thinning method:
+      // compute an upper bound on [0, T]
+      final double T = 1.0 + context.random.nextDouble();
+      final double 
+        v0 = context.velocity.get(0),
+        v1 = context.velocity.get(1),
+        x0 = theta0.getValue(),
+        x1 = theta1.getValue();
+      double upperBound = Math.max( // since exp(theta1(t)) + exp(theta2(t)) is convex we can look at end points for maxima
+        Math.exp(x0) + Math.exp(x1),
+        v0 * Math.exp(x0 + v0 * T) + v1 * Math.exp(x1 + v1 * T));
+      double firstEvent = Exponential.generate(context.random, upperBound);
+      if (firstEvent > T)
+        return Pair.of(T, false);
+      double pr =  
+          (v0 * Math.exp(x0 + v0 * firstEvent) + v1 * Math.exp(x1 + v1 * firstEvent)) * 
+          Math.max(0, 1 - observation.getValue() / (Math.exp(x0 + v0 * firstEvent) + Math.exp(x1 + v1 * firstEvent))/upperBound);
+      return Pair.of(firstEvent, Bernoulli.generate(context.random, pr));
+        
+    }
+    else
+      return Pair.of(
+          solver.collisionTime(getVector(), context.velocity, energyFunction, StaticUtils.generateUnitRateExponential(context.random)),
+          true);
   }
 
   @Override

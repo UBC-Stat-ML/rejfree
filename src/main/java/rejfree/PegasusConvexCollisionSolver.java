@@ -1,7 +1,5 @@
 package rejfree;
 
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.commons.math3.analysis.solvers.PegasusSolver;
@@ -10,8 +8,6 @@ import org.jblas.DoubleMatrix;
 import bayonet.math.NumericalUtils;
 import bayonet.opt.DifferentiableFunction;
 import bayonet.opt.LBFGSMinimizer;
-import briefj.BriefLists;
-import briefj.run.Results;
 import static rejfree.StaticUtils.*;
 
 public class PegasusConvexCollisionSolver

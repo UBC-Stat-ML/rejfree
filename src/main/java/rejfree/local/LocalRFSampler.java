@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.jblas.DoubleMatrix;
 
 import rejfree.StaticUtils;
@@ -30,12 +32,13 @@ import briefj.Indexer;
 
 public class LocalRFSampler
 {
-  private final EventQueue<CollisionFactor> collisionQueue = new EventQueue<>();
+  private final EventQueue<CollisionFactor> _collisionQueue = new EventQueue<>();
+  private final Map<CollisionFactor,Boolean> isCollisionMap = new LinkedHashMap<>();
   private final Map<RealVariable, TrajectoryRay> trajectories = new HashMap<>();
   
   public final ProbabilityModel model;
   private final RFSamplerOptions rfOptions;
-  private final MCMCOptions mcmcOptions;
+  public final MCMCOptions mcmcOptions;
   
   public final List<Processor> processors = new ArrayList<Processor>();
   public final List<RayProcessor> rayProcessors = new ArrayList<>();
@@ -49,6 +52,15 @@ public class LocalRFSampler
     mcmcOptions.thinningPeriod = 1;
     mcmcOptions.nMCMCSweeps = Integer.MAX_VALUE;
     // mcmcOptions.progressCODA = true;  <-- avoid this, it makes things slow
+  }
+  
+  public void addPointProcessor(Processor processor)
+  {
+    this.processors.add(processor);
+  }
+  
+  public void addDefaultPointProcessors()
+  {
     Factories<ProcessorFactory,NodeProcessorFactory> processorFactories = new Factories<ProcessorFactory,NodeProcessorFactory>(new NodeProcessorFactory());
     for (ProcessorFactory f : processorFactories.factories)
       processors.addAll(f.build(model));
@@ -111,7 +123,7 @@ public class LocalRFSampler
     double currentTime = 0.0;
     for (int iter = 0; iter < numberOfIterations; iter++)
     {
-      double nextCollisionTime = collisionQueue.peekTime();
+      double nextCollisionTime = _collisionQueue.peekTime(); //nextCollision(rand);
       collectSamples(currentTime, Math.min(nextCollisionTime, nextGlobalRefreshmentTime), rand);
       if (nextCollisionTime < nextGlobalRefreshmentTime)
       {
@@ -126,6 +138,26 @@ public class LocalRFSampler
       }
     }
   }
+  
+//  private double nextCollision(Random random)
+//  {
+//    boolean isCollision;
+//    double time;
+//    do
+//    {
+//      // peek first
+//      Entry<Double,CollisionFactor> event = _collisionQueue.peekEvent();
+//      time = event.getKey();
+//      isCollision = isCollisionMap.get(event.getValue());
+//      
+//      // if not collision, poll and recompute
+//      if (!isCollision)
+//        updateCandidateCollision(random, event.getValue(), time);
+//    }
+//    while (!isCollision);
+//    
+//    return time;
+//  }
   
   private void collectSamples(double currentTime, double nextEventTime, Random rand)
   {
@@ -147,10 +179,14 @@ public class LocalRFSampler
   private <CollisionType> void doCollision(Random rand)
   {
     // 0 - pop a collision factor
-    final Entry<Double,CollisionFactor> collision = collisionQueue.pollEvent();
+    final Entry<Double,CollisionFactor> collision = _collisionQueue.pollEvent();
+    
     final double collisionTime = collision.getKey();
     final CollisionFactor collisionFactor = collision.getValue();
+    final boolean isActualCollision = isCollisionMap.get(collisionFactor);
     
+    // TODO: if isActualCollision is false, it might be possible to update only a subset
+    // of the nodes below
     Collection<?> immediateNeighborVariables = model.neighborVariables(collisionFactor);
     Collection<CollisionFactor> neighborFactors = neighborFactors(immediateNeighborVariables);
     Collection<?> extendedNeighborVariables = neighborVariables(neighborFactors);
@@ -160,19 +196,32 @@ public class LocalRFSampler
       updateVariable(variable, collisionTime);
     
     // 2- update rays for variables in immediate neighborhood (and process)
-    updateTrajectories(collisionFactor, collisionTime);
+    if (isActualCollision)
+      updateTrajectories(collisionFactor, collisionTime);
     
-    // 3- recompute the collisions for the other factors touching the variables (including the one we just popped)
-    for (CollisionFactor factor : neighborFactors)
-      updateCandidateCollision(rand, factor, collisionTime);
+    if (isActualCollision)
+    {
+      // 3- recompute the collisions for the other factors touching the variables (including the one we just popped)
+      for (CollisionFactor factor : neighborFactors)
+        updateCandidateCollision(rand, factor, collisionTime);
+    }
+    else
+    {
+      // 3b- the collision is actually just a trigger to recompute the next collision time
+      updateCandidateCollision(rand, collisionFactor, collisionTime);
+    }
   }
   
   private void updateCandidateCollision(Random rand, CollisionFactor factor, double currentTime)
   {
-    collisionQueue.remove(factor);
-    double exponentialRealization = - Math.log(rand.nextDouble()); 
-    double candidateCollisionTime = currentTime + factor.getCollisionDeltaTime(exponentialRealization, getVelocityMatrix(factor));
-    collisionQueue.add(factor, candidateCollisionTime);
+    _collisionQueue.remove(factor);
+    
+    CollisionContext context = new CollisionContext(rand, getVelocityMatrix(factor));
+    Pair<Double, Boolean> collisionInfo = factor.getLowerBoundForCollisionDeltaTime(context);
+    
+    double candidateCollisionTime = currentTime + collisionInfo.getLeft();
+    isCollisionMap.put(factor, collisionInfo.getRight());
+    _collisionQueue.add(factor, candidateCollisionTime);
   }
   
   /**

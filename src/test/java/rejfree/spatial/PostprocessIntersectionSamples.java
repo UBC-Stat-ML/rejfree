@@ -13,7 +13,7 @@ import briefj.run.Mains;
 
 
 
-public class DeconvolveIntersectionSamples implements Runnable
+public class PostprocessIntersectionSamples implements Runnable
 {
   @Option(required = true)
   public File samples;
@@ -23,7 +23,7 @@ public class DeconvolveIntersectionSamples implements Runnable
 
   public static void main(String[] args)
   {
-    Mains.instrumentedRun(args, new DeconvolveIntersectionSamples());
+    Mains.instrumentedRun(args, new PostprocessIntersectionSamples());
   }
 
   @Override

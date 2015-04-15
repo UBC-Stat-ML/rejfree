@@ -54,6 +54,8 @@ public class PreprocessData implements Runnable
   public double [] limitPolygon_lat = new double[]{45.518989,45.529452,45.514899,45.514899};
   public double [] limitPolygon_long = new double[]{-73.594328,-73.585079,-73.549910,-73.549910};
   
+  @Option public boolean useLimits = true;
+  
   public static void main(String [] args)
   {
     Mains.instrumentedRun(args, new PreprocessData());
@@ -112,7 +114,7 @@ public class PreprocessData implements Runnable
   
   private boolean keep(double lat, double longi)
   {
-    if (limitPolygon_lat == null)
+    if (!useLimits)
       return true;
     return SpatialUtils.contains(limitPolygon_lat, limitPolygon_long, lat, longi);
   }

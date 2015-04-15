@@ -1,26 +1,34 @@
 package rejfree.spatial;
 
 import java.io.File;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.jblas.DoubleMatrix;
+
+import com.google.common.base.Joiner;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
 import rejfree.NormalFactor;
 import rejfree.local.LocalRFSampler;
 import blang.ProbabilityModel;
 import blang.annotations.DefineFactor;
+import blang.processing.Processor;
+import blang.processing.ProcessorContext;
 import blang.variables.IntegerVariable;
 import blang.variables.RealVariable;
 import briefj.BriefIO;
 import briefj.opt.Option;
 import briefj.opt.OptionSet;
 import briefj.run.Mains;
+import briefj.run.Results;
 
 
 /**
@@ -29,7 +37,7 @@ import briefj.run.Mains;
  * @author Alexandre Bouchard (alexandre.bouchard@gmail.com)
  *
  */
-public class RFSpatial implements Runnable
+public class RFSpatial implements Runnable, Processor
 {
   
   @Option(required = true)
@@ -127,6 +135,7 @@ public class RFSpatial implements Runnable
   }
   
   public Model modelSpec;
+  private PrintWriter output;
 
   @Override
   public void run()
@@ -134,8 +143,26 @@ public class RFSpatial implements Runnable
     modelSpec = new Model();
     ProbabilityModel model = new ProbabilityModel(modelSpec);
 //    System.out.println(model);
+    output = BriefIO.output(Results.getFileInResultFolder("output.csv"));
+    printHeader(output);
     LocalRFSampler local = new LocalRFSampler(model, options);
+    local.addPointProcessor(this);
+    
+    // monitor some variables
+//    local.mcmcOptions.progressCODA = true;
+//    RealVariable realVariable = modelSpec.variables.get(0);
+//    local.addVariableProcessor(realVariable);
+    
     local.iterate(random, nIterations);
+    output.close();
+  }
+
+  private void printHeader(PrintWriter output)
+  {
+    output.println(Joiner.on(",").join(
+        IntStream.range(0, modelSpec.variables.size()).
+          mapToObj(i -> "logIntensity." + (i+1)).
+          collect(Collectors.toList())));
   }
 
   public static void main(String [] args)
@@ -159,6 +186,15 @@ public class RFSpatial implements Runnable
 //    
 //    System.out.println(method2);
 //    
+  }
+
+  @Override
+  public void process(ProcessorContext context)
+  {
+    output.println(Joiner.on(",").join(
+        IntStream.range(0, modelSpec.variables.size()).
+          mapToObj(i -> modelSpec.variables.get(i).getValue()).
+          collect(Collectors.toList())));
   }
 
 

@@ -13,6 +13,11 @@ public class StaticUtils
     return initialPos.add(velocity.mul(time));
   }
   
+  public static double generateUnitRateExponential(Random random)
+  {
+    return - Math.log(random.nextDouble());
+  }
+  
   /**
    * 
    * @param dimension

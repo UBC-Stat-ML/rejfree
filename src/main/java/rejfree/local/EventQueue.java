@@ -17,6 +17,11 @@ public class EventQueue<S>
     return sortedEvents.pollFirstEntry();
   }
   
+  public Entry<Double,S> peekEvent()
+  {
+    return sortedEvents.firstEntry();
+  }
+  
   public void remove(S event)
   {
     Double time = eventTimes.get(event);

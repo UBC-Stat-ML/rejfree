@@ -94,7 +94,7 @@ public class GlobalRFSampler
     for (int iter = 0; iter < numberOfIterations; iter++)
     {
       // simulate event
-      final double exponential = - Math.log(rand.nextDouble());
+      final double exponential = StaticUtils.generateUnitRateExponential(rand);
       double collisionTime = solver.collisionTime(currentPosition, currentVelocity, energy, exponential);
       double refreshTime = options.refreshRate == 0 ? Double.POSITIVE_INFINITY : Exponential.generate(rand, options.refreshRate);
       double eventTime = Math.min(collisionTime, refreshTime);

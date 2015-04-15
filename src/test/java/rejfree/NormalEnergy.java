@@ -1,13 +1,16 @@
 package rejfree;
 
-import org.jblas.Decompose;
 import org.jblas.DoubleMatrix;
 
 import bayonet.math.JBlasUtils;
 import bayonet.opt.DifferentiableFunction;
+import briefj.BriefLog;
 
 
-
+/**
+ * @author Alexandre Bouchard (alexandre.bouchard@gmail.com)
+ *
+ */
 public class NormalEnergy implements DifferentiableFunction
 {
   private final DoubleMatrix precisionMatrix;
@@ -19,6 +22,11 @@ public class NormalEnergy implements DifferentiableFunction
   
   public static NormalEnergy isotropic(int dim)
   {
+    BriefLog.warnOnce("Warning: the calculation of the normalization of NormalEnergy has "
+        + "been temporarily disable, as well as its test (in TestNormalEnergy), "
+        + "although the test is correct. This should not be a problem as long as parameters of this "
+        + "energy are not resampled (a functionality that is not currently implemented anyways.");
+    
     DoubleMatrix precision = DoubleMatrix.eye(dim);
     return new NormalEnergy(precision);
   }

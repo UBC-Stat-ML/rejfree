@@ -2,12 +2,15 @@ package rejfree;
 
 import java.util.List;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.jblas.DoubleMatrix;
 
+import rejfree.local.CollisionContext;
 import rejfree.local.CollisionFactor;
 import blang.annotations.FactorComponent;
 import blang.factors.FactorList;
 import blang.variables.RealVariable;
+import briefj.BriefLog;
 
 
 
@@ -31,6 +34,7 @@ public class NormalFactor implements CollisionFactor
   
   private NormalFactor(List<RealVariable> variables, NormalEnergy energyFunction)
   {
+    BriefLog.warnOnce("WARNING: NormalFactor collision could be computed analytically.");
     this.variables = FactorList.ofArguments(variables, true);
     this.energyFunction = energyFunction;
     this.solver = new PegasusConvexCollisionSolver();
@@ -52,12 +56,14 @@ public class NormalFactor implements CollisionFactor
       _vector.put(i, variables.list.get(i).getValue());
     return _vector;
   }
-
+  
   @Override
-  public double getCollisionDeltaTime(double exponentialRealization, DoubleMatrix velocity)
+  public Pair<Double, Boolean> getLowerBoundForCollisionDeltaTime(
+      CollisionContext context)
   {
-    // TODO: this could be done analytically
-    return solver.collisionTime(getVector(), velocity, energyFunction, exponentialRealization);
+    double exponentialRealization = StaticUtils.generateUnitRateExponential(context.random);
+    double collisionTime = solver.collisionTime(getVector(), context.velocity, energyFunction, exponentialRealization);
+    return Pair.of(collisionTime, true);
   }
 
   @Override
