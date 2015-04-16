@@ -139,26 +139,6 @@ public class LocalRFSampler
     }
   }
   
-//  private double nextCollision(Random random)
-//  {
-//    boolean isCollision;
-//    double time;
-//    do
-//    {
-//      // peek first
-//      Entry<Double,CollisionFactor> event = _collisionQueue.peekEvent();
-//      time = event.getKey();
-//      isCollision = isCollisionMap.get(event.getValue());
-//      
-//      // if not collision, poll and recompute
-//      if (!isCollision)
-//        updateCandidateCollision(random, event.getValue(), time);
-//    }
-//    while (!isCollision);
-//    
-//    return time;
-//  }
-  
   private void collectSamples(double currentTime, double nextEventTime, Random rand)
   {
     if (rfOptions.collectRate == 0.0)

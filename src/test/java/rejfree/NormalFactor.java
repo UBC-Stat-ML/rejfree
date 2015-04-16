@@ -84,5 +84,4 @@ public class NormalFactor implements CollisionFactor
   {
     return variables.list.size();
   }
-
 }

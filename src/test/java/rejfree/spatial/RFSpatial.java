@@ -127,18 +127,12 @@ public class RFSpatial implements Runnable, Processor
   {
     modelSpec = new Model();
     ProbabilityModel model = new ProbabilityModel(modelSpec);
-//    System.out.println(model);
+    System.out.println(model);
     File samplesFile = Results.getFileInResultFolder(RunSpatialExample.SAMPLES_FILE_NAME);
     output = BriefIO.output(samplesFile);
     printHeader(output);
     LocalRFSampler local = new LocalRFSampler(model, options);
     local.addPointProcessor(this);
-    
-    // monitor some variables
-//    local.mcmcOptions.progressCODA = true;
-//    RealVariable realVariable = modelSpec.variables.get(0);
-//    local.addVariableProcessor(realVariable);
-    
     local.iterate(mainOptions.random, mainOptions.nSamples);
     output.close();
   }
@@ -151,29 +145,6 @@ public class RFSpatial implements Runnable, Processor
           collect(Collectors.toList())));
   }
 
-//  public static void main(String [] args)
-//  {
-//    Mains.instrumentedRun(args, new RFSpatial());
-////    double point0 = 0.34;
-////    double point1 = 0.12;
-////    double drift = 1.0;
-//////    double init = 2.0;
-////    
-////    // method 1
-//////    double method1 = Normal.logDensity(point1, point0, drift);
-////    double method1 = - 0.5 * (point0 - point1) * (point0 - point1) / drift;
-////    System.out.println(method1);
-////    
-////    double id = 1.0/drift;
-////    DoubleMatrix precision = new DoubleMatrix(new double[][]{{id, -id},{-id, id}});
-////    NormalEnergy e = NormalEnergy.withPrecision(precision);
-////    System.out.println(Arrays.toString(e.derivativeAt(new double[]{point0, point1})));
-////    double method2 = - e.valueAt(new double[]{point0, point1});
-////    
-////    System.out.println(method2);
-////    
-//  }
-
   @Override
   public void process(ProcessorContext context)
   {
@@ -182,6 +153,4 @@ public class RFSpatial implements Runnable, Processor
           mapToObj(i -> modelSpec.variables.get(i).getValue()).
           collect(Collectors.toList())));
   }
-
-
 }

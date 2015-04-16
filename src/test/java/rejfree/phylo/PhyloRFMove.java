@@ -70,6 +70,4 @@ public class PhyloRFMove extends NodeMove
   }
 
   private boolean initialized = false;
-
-
 }

@@ -47,7 +47,6 @@ public class TestBivariateNormDistribution
     System.out.println(test2.tTest(Doubles.toArray(rfSamples), Doubles.toArray(ref)));
   }
   
-
   private static List<Double> ref(int nIterations, Random rand)
   {
     List<Double> result = Lists.newArrayList();
@@ -68,5 +67,4 @@ public class TestBivariateNormDistribution
       result.add(sample.dot(sample));
     return result;
   }
-
 }

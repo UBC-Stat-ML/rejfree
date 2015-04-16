@@ -30,11 +30,6 @@ public class RunStan
     this.mainOptions = mainOptions;
   }
 
-//  public static void main(String [] args)
-//  {
-//    Mains.instrumentedRun(args, new RunStan());
-//  }
-
   public void run()
   {
     String stanModel = BriefIO.resourceToString("/rejfree/spatialModel.stan");
@@ -50,5 +45,4 @@ public class RunStan
           + "data file=" + mainOptions.getRDataFile().getAbsolutePath())
       .call();
   }
-  
 }

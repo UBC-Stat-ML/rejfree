@@ -83,8 +83,6 @@ public class PegasusConvexCollisionSolver
       }
     };
     
-    
-    
     double minTime = new LBFGSMinimizer().minimize(lineRestricted, new double[]{0}, 1e-10)[0];
     
     if (minTime < 0.0)

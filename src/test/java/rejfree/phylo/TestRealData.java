@@ -147,8 +147,5 @@ public class TestRealData implements Runnable, Processor
   @Override
   public void process(ProcessorContext context)
   {
-    
-    
   }
-
 }

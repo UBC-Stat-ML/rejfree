@@ -80,7 +80,6 @@ public class TestLocalOnNormalDist implements Processor
     }
   }
   
-  
   public static class ChainModel
   {
     RealVariable 
