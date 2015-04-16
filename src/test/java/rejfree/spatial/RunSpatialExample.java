@@ -13,10 +13,10 @@ public class RunSpatialExample implements Runnable
   public SpatialMainOptions mainOptions = new SpatialMainOptions();
   
   @OptionSet(name = "rf")
-  public RFSpatial rfMain = new RFSpatial(mainOptions);
+  public SpatialBlang rfMain = new SpatialBlang(mainOptions);
   
   @OptionSet(name = "hmc")
-  public RunStan stanMain = new RunStan(mainOptions);
+  public SpatialStan stanMain = new SpatialStan(mainOptions);
   
   @Option
   public SamplingMethod samplingMethod = SamplingMethod.LOCAL_RF;

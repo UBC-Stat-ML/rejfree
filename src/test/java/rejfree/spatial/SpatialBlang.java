@@ -34,11 +34,11 @@ import briefj.run.Results;
  * @author Alexandre Bouchard (alexandre.bouchard@gmail.com)
  *
  */
-public class RFSpatial implements Runnable, Processor
+public class SpatialBlang implements Runnable, Processor
 {
   public final SpatialMainOptions mainOptions;
   
-  public RFSpatial(SpatialMainOptions mainOptions)
+  public SpatialBlang(SpatialMainOptions mainOptions)
   {
     this.mainOptions = mainOptions;
   }

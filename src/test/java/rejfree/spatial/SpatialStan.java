@@ -11,7 +11,7 @@ import briefj.run.Results;
 
 
 
-public class RunStan 
+public class SpatialStan 
 {
   @Option
   public File stanHome;
@@ -24,7 +24,7 @@ public class RunStan
   @Option
   public int nWarmUp = 1000;
   
-  public RunStan(SpatialMainOptions mainOptions)
+  public SpatialStan(SpatialMainOptions mainOptions)
   {
     super();
     this.mainOptions = mainOptions;
