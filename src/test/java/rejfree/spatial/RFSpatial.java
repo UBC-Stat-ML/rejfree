@@ -7,7 +7,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -25,9 +24,7 @@ import blang.processing.ProcessorContext;
 import blang.variables.IntegerVariable;
 import blang.variables.RealVariable;
 import briefj.BriefIO;
-import briefj.opt.Option;
 import briefj.opt.OptionSet;
-import briefj.run.Mains;
 import briefj.run.Results;
 
 
@@ -39,35 +36,23 @@ import briefj.run.Results;
  */
 public class RFSpatial implements Runnable, Processor
 {
+  public final SpatialMainOptions mainOptions;
   
-  @Option(required = true)
-  public File accidentsData;
+  public RFSpatial(SpatialMainOptions mainOptions)
+  {
+    this.mainOptions = mainOptions;
+  }
 
-  @Option(required = true)
-  public File geographicData;
-  
-  @Option
-  public double drift = 0.2;
-  
-  @Option
-  public double init = 10;
-  
-  @Option
-  public int nIterations = 1000;
-  
-  @Option
-  public Random random = new Random(1);
-  
   @OptionSet(name = "rf")
-  public RFSamplerOptions options = new RFSamplerOptions();
-
+  public final RFSamplerOptions options = new RFSamplerOptions();
+  
   public class Model
   {
     // indexed by streetAtCornerIndex in the csv files
     Map<Integer, RealVariable> variables = variables();
     
     @DefineFactor
-    public final List<NormalFactor> geographicPrior = geographicPrior(drift, init);
+    public final List<NormalFactor> geographicPrior = geographicPrior(mainOptions.drift, mainOptions.init);
     
     @DefineFactor(onObservations = true)
     public final List<ConvolvedPoissonFactor> likelihood = likelihood();
@@ -75,7 +60,7 @@ public class RFSpatial implements Runnable, Processor
     private Map<Integer, RealVariable> variables()
     {
       Map<Integer, RealVariable> result = new LinkedHashMap<Integer, RealVariable>();
-      for (Map<String,String> line : BriefIO.readLines(geographicData).indexCSV())
+      for (Map<String,String> line : BriefIO.readLines(mainOptions.getGeoDataCSVFile()).indexCSV())
         result.put(Integer.parseInt(line.get("currentStreetAtCornerIndex")), new RealVariable(0.0));
       return result;
     }
@@ -84,7 +69,7 @@ public class RFSpatial implements Runnable, Processor
     {
       List<ConvolvedPoissonFactor> result = new ArrayList<>();
       
-      for (Map<String,String> line : BriefIO.readLines(accidentsData).indexCSV())
+      for (Map<String,String> line : BriefIO.readLines(mainOptions.getAccidentsDataCSVFile()).indexCSV())
       {
         RealVariable 
           first  = variables.get(Integer.parseInt(line.get("streetAtCorner1Index"))),
@@ -103,7 +88,7 @@ public class RFSpatial implements Runnable, Processor
     {
       List<NormalFactor> result = new ArrayList<NormalFactor>();
       
-      for (Map<String,String> line : BriefIO.readLines(geographicData).indexCSV())
+      for (Map<String,String> line : BriefIO.readLines(mainOptions.getGeoDataCSVFile()).indexCSV())
       {
         RealVariable 
           current = variables.get(Integer.parseInt(line.get("currentStreetAtCornerIndex"))),
@@ -143,7 +128,8 @@ public class RFSpatial implements Runnable, Processor
     modelSpec = new Model();
     ProbabilityModel model = new ProbabilityModel(modelSpec);
 //    System.out.println(model);
-    output = BriefIO.output(Results.getFileInResultFolder("output.csv"));
+    File samplesFile = Results.getFileInResultFolder(RunSpatialExample.SAMPLES_FILE_NAME);
+    output = BriefIO.output(samplesFile);
     printHeader(output);
     LocalRFSampler local = new LocalRFSampler(model, options);
     local.addPointProcessor(this);
@@ -153,7 +139,7 @@ public class RFSpatial implements Runnable, Processor
 //    RealVariable realVariable = modelSpec.variables.get(0);
 //    local.addVariableProcessor(realVariable);
     
-    local.iterate(random, nIterations);
+    local.iterate(mainOptions.random, mainOptions.nSamples);
     output.close();
   }
 
@@ -165,28 +151,28 @@ public class RFSpatial implements Runnable, Processor
           collect(Collectors.toList())));
   }
 
-  public static void main(String [] args)
-  {
-    Mains.instrumentedRun(args, new RFSpatial());
-//    double point0 = 0.34;
-//    double point1 = 0.12;
-//    double drift = 1.0;
-////    double init = 2.0;
-//    
-//    // method 1
-////    double method1 = Normal.logDensity(point1, point0, drift);
-//    double method1 = - 0.5 * (point0 - point1) * (point0 - point1) / drift;
-//    System.out.println(method1);
-//    
-//    double id = 1.0/drift;
-//    DoubleMatrix precision = new DoubleMatrix(new double[][]{{id, -id},{-id, id}});
-//    NormalEnergy e = NormalEnergy.withPrecision(precision);
-//    System.out.println(Arrays.toString(e.derivativeAt(new double[]{point0, point1})));
-//    double method2 = - e.valueAt(new double[]{point0, point1});
-//    
-//    System.out.println(method2);
-//    
-  }
+//  public static void main(String [] args)
+//  {
+//    Mains.instrumentedRun(args, new RFSpatial());
+////    double point0 = 0.34;
+////    double point1 = 0.12;
+////    double drift = 1.0;
+//////    double init = 2.0;
+////    
+////    // method 1
+//////    double method1 = Normal.logDensity(point1, point0, drift);
+////    double method1 = - 0.5 * (point0 - point1) * (point0 - point1) / drift;
+////    System.out.println(method1);
+////    
+////    double id = 1.0/drift;
+////    DoubleMatrix precision = new DoubleMatrix(new double[][]{{id, -id},{-id, id}});
+////    NormalEnergy e = NormalEnergy.withPrecision(precision);
+////    System.out.println(Arrays.toString(e.derivativeAt(new double[]{point0, point1})));
+////    double method2 = - e.valueAt(new double[]{point0, point1});
+////    
+////    System.out.println(method2);
+////    
+//  }
 
   @Override
   public void process(ProcessorContext context)

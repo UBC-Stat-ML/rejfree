@@ -7,37 +7,34 @@ import bayonet.bugs.StanWrapper;
 import binc.Command;
 import briefj.BriefIO;
 import briefj.opt.Option;
-import briefj.run.Mains;
 import briefj.run.Results;
 
 
 
-public class RunStan implements Runnable
+public class RunStan 
 {
-  @Option(required = true)
+  @Option
   public File stanHome;
   
-  @Option(required = true)
-  public File data;
+  public final SpatialMainOptions mainOptions;
 
   @Option
   public int thin = 1;
 
   @Option
-  public int nSamples = 1000;
-
-  @Option
   public int nWarmUp = 1000;
-
-  @Option
-  public int seed = 1;
   
-  public static void main(String [] args)
+  public RunStan(SpatialMainOptions mainOptions)
   {
-    Mains.instrumentedRun(args, new RunStan());
+    super();
+    this.mainOptions = mainOptions;
   }
 
-  @Override
+//  public static void main(String [] args)
+//  {
+//    Mains.instrumentedRun(args, new RunStan());
+//  }
+
   public void run()
   {
     String stanModel = BriefIO.resourceToString("/rejfree/spatialModel.stan");
@@ -47,10 +44,10 @@ public class RunStan implements Runnable
       .withStandardOutMirroring()
       .withArgs("sample "
           + "thin=" + thin  + " "
-          + "num_samples=" + nSamples + " "
+          + "num_samples=" + mainOptions.nSamples + " "
           + "num_warmup=" + nWarmUp + " "
-          + "random seed=" + seed  + " "
-          + "data file=" + data.getAbsolutePath())
+          + "random seed=" + mainOptions.random.nextInt()  + " "
+          + "data file=" + mainOptions.getRDataFile().getAbsolutePath())
       .call();
   }
   
