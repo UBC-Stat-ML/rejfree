@@ -3,6 +3,8 @@ package rejfree.spatial;
 import java.io.File;
 import java.util.Random;
 
+import blang.MCMCFactory;
+import blang.variables.RealVariableProcessor;
 import briefj.opt.Option;
 
 
@@ -32,6 +34,16 @@ public class SpatialMainOptions
     return new File(dataFolder, PreprocessData.R_OUTPUT_NAME);
   }
   
+  public double getPriorTransitionVariance()
+  {
+    return drift * drift;
+  }
+  
+  public double getPriorInitialVariance()
+  {
+    return init * init;
+  }
+  
   public File getGeoDataCSVFile()
   {
     return new File(dataFolder, PreprocessData.GEO_OUTPUT_NAME);
@@ -40,5 +52,19 @@ public class SpatialMainOptions
   public File getAccidentsDataCSVFile()
   {
     return new File(dataFolder, PreprocessData.ACCIDENTS_OUTPUT_NAME);
+  }
+
+  public MCMCFactory getMCMCFactory()
+  {
+    MCMCFactory result = new MCMCFactory();
+    
+    result.mcmcOptions.nMCMCSweeps = nSamples;
+    result.mcmcOptions.thinningPeriod = 1;
+    result.mcmcOptions.CODA = false;
+    result.mcmcOptions.random = random;
+    
+    result.excludeNodeProcessor(RealVariableProcessor.class);
+    
+    return result;
   }
 }

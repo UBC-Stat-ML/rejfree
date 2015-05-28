@@ -3,20 +3,16 @@ package rejfree.spatial;
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.jblas.DoubleMatrix;
-
-import com.google.common.base.Joiner;
-
 import rejfree.GlobalRFSampler.RFSamplerOptions;
-import rejfree.NormalFactor;
 import rejfree.local.LocalRFSampler;
+import blang.MCMCAlgorithm;
+import blang.MCMCFactory;
 import blang.ProbabilityModel;
 import blang.annotations.DefineFactor;
 import blang.processing.Processor;
@@ -27,6 +23,8 @@ import briefj.BriefIO;
 import briefj.opt.OptionSet;
 import briefj.run.Results;
 
+import com.google.common.base.Joiner;
+
 
 /**
  * Test the phylogenetic MCMC moves on a phylogenetic model.
@@ -34,7 +32,7 @@ import briefj.run.Results;
  * @author Alexandre Bouchard (alexandre.bouchard@gmail.com)
  *
  */
-public class SpatialBlang implements Runnable, Processor
+public class SpatialBlang implements Processor
 {
   public final SpatialMainOptions mainOptions;
   
@@ -52,7 +50,7 @@ public class SpatialBlang implements Runnable, Processor
     Map<Integer, RealVariable> variables = variables();
     
     @DefineFactor
-    public final List<NormalFactor> geographicPrior = geographicPrior(mainOptions.drift, mainOptions.init);
+    public final List<SpatialNormalFactor> geographicPrior = geographicPrior(mainOptions.getPriorTransitionVariance(), mainOptions.getPriorInitialVariance());
     
     @DefineFactor(onObservations = true)
     public final List<ConvolvedPoissonFactor> likelihood = likelihood();
@@ -84,9 +82,9 @@ public class SpatialBlang implements Runnable, Processor
       return result;
     }
 
-    private List<NormalFactor> geographicPrior(double drift, double init)
+    private List<SpatialNormalFactor> geographicPrior(double priorTransitionVariance, double priorInitialVariance)
     {
-      List<NormalFactor> result = new ArrayList<NormalFactor>();
+      List<SpatialNormalFactor> result = new ArrayList<>();
       
       for (Map<String,String> line : BriefIO.readLines(mainOptions.getGeoDataCSVFile()).indexCSV())
       {
@@ -94,24 +92,30 @@ public class SpatialBlang implements Runnable, Processor
           current = variables.get(Integer.parseInt(line.get("currentStreetAtCornerIndex"))),
           prev    = variables.get(Integer.parseInt(line.get("previousStreetAtCornerIndex")));
         
-        List<RealVariable> variables;
-        double [][] covar;
-        if (prev == null)
-        {
-          // beginning of a chain
-          variables = Collections.singletonList(current);
-          covar = new double[][]{{init}};
-        }
-        else
-        {
-          // continuation
-          variables = new ArrayList<>();
-          variables.add(current);
-          variables.add(prev);
-          double entry = 1.0/drift;
-          covar = new double[][]{{entry,-entry},{-entry,entry}};
-        }
-        NormalFactor f = NormalFactor.withPrecision(variables, new DoubleMatrix(covar));
+//        List<RealVariable> variables;
+//        double [][] covar;
+//        if (prev == null)
+//        {
+//          // beginning of a chain
+//          variables = Collections.singletonList(current);
+//          covar = new double[][]{{init}};
+//        }
+//        else
+//        {
+//          // continuation
+//          variables = new ArrayList<>();
+//          variables.add(current);
+//          variables.add(prev);
+//          // TODO: fix this hack!
+//          double entry = 1.0/variance;
+//          covar = new double[][]{{entry,-entry},{-entry,entry}};
+//        }
+//        NormalFactor f = NormalFactor.withPrecision(variables, new DoubleMatrix(covar));
+        
+        SpatialNormalFactor f = prev == null ? 
+          SpatialNormalFactor.newUnaryFactor(priorInitialVariance, current) : 
+          SpatialNormalFactor.newBinaryFactor(priorTransitionVariance, current, prev);
+        
         result.add(f);
       }
       
@@ -122,8 +126,35 @@ public class SpatialBlang implements Runnable, Processor
   public Model modelSpec;
   private PrintWriter output;
 
-  @Override
-  public void run()
+  public void runRF()
+  {
+    ProbabilityModel model = setupModel();
+    
+    LocalRFSampler local = new LocalRFSampler(model, options);
+    local.addPointProcessor(this);
+    local.iterate(mainOptions.random, mainOptions.nSamples);
+    
+    tearDown();
+  }
+  
+  public void runStandardBlang()
+  {
+    ProbabilityModel model = setupModel();
+    
+    MCMCFactory factory = mainOptions.getMCMCFactory();
+    factory.addProcessor(this);
+    MCMCAlgorithm mcmcAlgo = factory.build(model);
+    mcmcAlgo.run();
+    
+    tearDown();
+  }
+  
+  private void tearDown()
+  {
+    output.close();
+  }
+  
+  private ProbabilityModel setupModel()
   {
     modelSpec = new Model();
     ProbabilityModel model = new ProbabilityModel(modelSpec);
@@ -131,10 +162,7 @@ public class SpatialBlang implements Runnable, Processor
     File samplesFile = Results.getFileInResultFolder(RunSpatialExample.SAMPLES_FILE_NAME);
     output = BriefIO.output(samplesFile);
     printHeader(output);
-    LocalRFSampler local = new LocalRFSampler(model, options);
-    local.addPointProcessor(this);
-    local.iterate(mainOptions.random, mainOptions.nSamples);
-    output.close();
+    return model;
   }
 
   private void printHeader(PrintWriter output)

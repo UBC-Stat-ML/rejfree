@@ -28,12 +28,12 @@ public class ConvolvedPoissonFactor implements CollisionFactor
   @FactorArgument(makeStochastic = true)
   public final IntegerVariable observation;
   
-  public ConvolvedPoissonFactor unary(RealVariable theta0, IntegerVariable observation)
+  public static ConvolvedPoissonFactor unary(RealVariable theta0, IntegerVariable observation)
   {
     return new ConvolvedPoissonFactor(theta0, null, observation);
   }
   
-  public ConvolvedPoissonFactor binary(RealVariable theta0, RealVariable theta1, IntegerVariable observation)
+  public static ConvolvedPoissonFactor binary(RealVariable theta0, RealVariable theta1, IntegerVariable observation)
   {
     return new ConvolvedPoissonFactor(theta0, theta1, observation);
   }
@@ -49,7 +49,7 @@ public class ConvolvedPoissonFactor implements CollisionFactor
 
   private final PegasusConvexCollisionSolver solver;
   
-  private final DifferentiableFunction energyFunction = new DifferentiableFunction() {
+  final DifferentiableFunction energyFunction = new DifferentiableFunction() {
     
     @Override
     public double valueAt(double[] thetas)

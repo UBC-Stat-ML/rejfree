@@ -21,8 +21,9 @@ parameters {
 
   real logIntensity[nStreetAtCorners];
   
-  // controls spatial smoothing on the streets
+  // controls spatial smoothing on the streets 
   // larger values means that the logIntensity are more free to vary
+  // more precisely, this acts as a STANDARD DEVIATION on sparse normal priors
   //real<lower=0> drift;
   
 }

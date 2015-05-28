@@ -20,7 +20,14 @@ public interface CollisionFactor extends Factor
    *    second item should be false).
    */
   public Pair<Double,Boolean> getLowerBoundForCollisionDeltaTime(CollisionContext context);
+  
+  /**
+   * 
+   * @return The gradient of the log-likelihood (NOT the energy, to be
+   *   in agreement with the inherited Factor)
+   */
   public DoubleMatrix gradient();
+  
   public RealVariable getVariable(int gradientCoordinate);
   public int nVariables();
 }

@@ -23,8 +23,9 @@ public class RunSpatialExample implements Runnable
   
   public static enum SamplingMethod
   {
-    STAN     { void execute(RunSpatialExample instance) { instance.stanMain.run(); }},
-    LOCAL_RF { void execute(RunSpatialExample instance) { instance.rfMain.run(); }};
+    STAN      { void execute(RunSpatialExample instance) { instance.stanMain.run(); }},
+    SLICE     { void execute(RunSpatialExample instance) { instance.rfMain.runStandardBlang(); }},
+    LOCAL_RF  { void execute(RunSpatialExample instance) { instance.rfMain.runRF(); }};
     abstract void execute(RunSpatialExample instance);
   }
 
