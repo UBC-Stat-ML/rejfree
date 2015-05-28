@@ -10,9 +10,7 @@ public class Doc
    * Summary [![Build Status](https://travis-ci.org/alexandrebouchard/rejfree.png?branch=master)](https://travis-ci.org/alexandrebouchard/rejfree)
    * -------
    * 
-   * rejfree is ...
-   * 
-   * rejfree stands for ...
+   * rejfree contains various rejection-free Markov process Monte Carlo methods.
    * 
    * 
    * Installation
