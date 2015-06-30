@@ -39,7 +39,7 @@ dependencies {
   compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.4'
   compile 'com.google.code.gson:gson:2.3.1'
   compile 'org.jblas:jblas:1.2.3'
-  compile group: 'ca.ubc.stat', name: 'bayonet', version: '2.3.19'
+  compile group: 'ca.ubc.stat', name: 'bayonet', version: '2.3.20'
   compile 'com.googlecode.efficient-java-matrix-library:ejml:0.24'
 }
 

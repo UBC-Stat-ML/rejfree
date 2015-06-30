@@ -114,6 +114,10 @@ public class GlobalRFSampler
     }
   }
   
+  public void setVelocity(DoubleMatrix velocity)
+  {
+    this.currentVelocity = velocity.dup();
+  }
 
   private DoubleMatrix refreshVelocity(DoubleMatrix currentPosition,
       DoubleMatrix currentVelocity, Random rand)
