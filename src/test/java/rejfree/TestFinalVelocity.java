@@ -77,9 +77,12 @@ public class TestFinalVelocity implements Runnable
       System.out.println("Marginal");
       System.out.println("p = " + CheckStationarity.tTest.pValue(xs, reference));
       System.out.println("p = " + CheckStationarity.higherMomentTTest.pValue(xs, reference));
+      System.out.println("p = " + CheckStationarity.mannWhitneyTest.pValue(xs, reference));
       
       System.out.println("Norm");
       System.out.println("p = " + CheckStationarity.tTest.pValue(norms, refNorms));
+      System.out.println("p = " + CheckStationarity.higherMomentTTest.pValue(norms, refNorms));
+      System.out.println("p = " + CheckStationarity.mannWhitneyTest.pValue(xs, reference));
     }
   }
   
