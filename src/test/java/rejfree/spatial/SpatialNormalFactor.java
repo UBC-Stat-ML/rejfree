@@ -62,37 +62,53 @@ public class SpatialNormalFactor implements CollisionFactor
     return Normal.logDensity(argument(), 0.0, variance);
   }
 
-  @Override
+//  @Override
+//  public Pair<Double, Boolean> getLowerBoundForCollisionDeltaTime(
+//      CollisionContext context)
+//  {
+//    final DoubleMatrix 
+//      x = getPosition(),
+//      v = context.velocity;
+//    
+//    final double 
+//      xv     = x.dot(v),
+//      vNorm  = v.norm2(),
+//      vNorm2 = vNorm * vNorm;
+//    
+//    final double s1 = xv / vNorm;
+//    final double E = StaticUtils.generateUnitRateExponential(context.random);
+//    
+//    final double C = - E + (xv < 0 ? - xv * s1 - vNorm * s1 / 2.0 : 0.0);
+//    final double sCollision = (- xv + Math.sqrt(xv * xv - 2 * vNorm2 * C))/ vNorm2; 
+//    
+//    Pair<Double, Boolean> result = Pair.of(sCollision, true);
+//    
+//    System.out.println(result + " vs " + old_getLowerBoundForCollisionDeltaTime(context));
+//    
+//    return result;
+//  }
+//  
+//  private DoubleMatrix getPosition()
+//  {
+//    return new DoubleMatrix(isBinary() ? 
+//        new double[]{getVariable(0).getValue(), getVariable(1).getValue()} : 
+//        new double[]{getVariable(0).getValue()});
+//  }
+  
   public Pair<Double, Boolean> getLowerBoundForCollisionDeltaTime(
       CollisionContext context)
   {
-    final DoubleMatrix 
-      x = getPosition(),
-      v = context.velocity;
-    
+    double x = argument();
+    double v = velocity(context.velocity);
+    final double e = StaticUtils.generateUnitRateExponential(context.random);
     final double 
-      xv     = x.dot(v),
-      vNorm  = v.norm2(),
-      vNorm2 = vNorm * vNorm;
-    
-    final double s1 = xv / vNorm;
-    final double E = StaticUtils.generateUnitRateExponential(context.random);
-    
-    final double C = - E + (xv < 0 ? - x.dot(v) * s1 - vNorm * s1 / 2.0 : 0.0);
+      xv     = x*v,
+      vNorm  = Math.sqrt(v*v),
+      vNorm2 = v*v;
+    final double s1 = Math.abs(xv) / vNorm;
+    final double C = - e * variance + (xv < 0 ? - xv * s1 - vNorm * s1 / 2.0 : 0.0);
     final double sCollision = (- xv + Math.sqrt(xv * xv - 2 * vNorm2 * C))/ vNorm2; 
-    
-    Pair<Double, Boolean> result = Pair.of(sCollision, true);
-    
-    System.out.println(result + " vs " + old_getLowerBoundForCollisionDeltaTime(context));
-    
-    return result;
-  }
-  
-  private DoubleMatrix getPosition()
-  {
-    return new DoubleMatrix(isBinary() ? 
-        new double[]{getVariable(0).getValue(), getVariable(1).getValue()} : 
-        new double[]{getVariable(0).getValue()});
+    return Pair.of(sCollision, true);
   }
 
   public Pair<Double, Boolean> old_getLowerBoundForCollisionDeltaTime(
