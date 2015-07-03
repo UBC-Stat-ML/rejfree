@@ -66,6 +66,38 @@ public class SpatialNormalFactor implements CollisionFactor
   public Pair<Double, Boolean> getLowerBoundForCollisionDeltaTime(
       CollisionContext context)
   {
+    final DoubleMatrix 
+      x = getPosition(),
+      v = context.velocity;
+    
+    final double 
+      xv     = x.dot(v),
+      vNorm  = v.norm2(),
+      vNorm2 = vNorm * vNorm;
+    
+    final double s1 = xv / vNorm;
+    final double E = StaticUtils.generateUnitRateExponential(context.random);
+    
+    final double C = - E + (xv < 0 ? - x.dot(v) * s1 - vNorm * s1 / 2.0 : 0.0);
+    final double sCollision = (- xv + Math.sqrt(xv * xv - 2 * vNorm2 * C))/ vNorm2; 
+    
+    Pair<Double, Boolean> result = Pair.of(sCollision, true);
+    
+    System.out.println(result + " vs " + old_getLowerBoundForCollisionDeltaTime(context));
+    
+    return result;
+  }
+  
+  private DoubleMatrix getPosition()
+  {
+    return new DoubleMatrix(isBinary() ? 
+        new double[]{getVariable(0).getValue(), getVariable(1).getValue()} : 
+        new double[]{getVariable(0).getValue()});
+  }
+
+  public Pair<Double, Boolean> old_getLowerBoundForCollisionDeltaTime(
+      CollisionContext context)
+  {
     double a = argument();
     double b = velocity(context.velocity);
     boolean sameSign = Math.signum(a) == Math.signum(b);
@@ -76,7 +108,7 @@ public class SpatialNormalFactor implements CollisionFactor
     double time = (sameSign ? Math.sqrt(2 * e * variance + a * a) - a : Math.sqrt(2 * e * variance) + a) / b;
     return Pair.of(time, true);
   }
-
+  
   private double velocity(DoubleMatrix velocity)
   {
     return isBinary() ? velocity.get(0) - velocity.get(1) : velocity.get(0);
