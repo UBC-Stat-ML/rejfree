@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.jblas.DoubleMatrix;
+
 import rejfree.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFSampler;
 import blang.MCMCAlgorithm;

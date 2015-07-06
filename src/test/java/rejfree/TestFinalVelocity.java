@@ -28,11 +28,14 @@ public class TestFinalVelocity implements Runnable
   {
     for (double fixedTime : new double[]{0.0, 10})
     {
-      final int dim = 6;
+      final int dim = 2;
       final int nSamples = 100000;
       List<Double> betas = new ArrayList<Double>();
       List<Double> xs = new ArrayList<Double>();
       List<Double> norms = new ArrayList<Double>();
+      DoubleMatrix
+        outerProdFromExact = new DoubleMatrix(dim,dim),
+        outerProdFromRF = new DoubleMatrix(dim,dim);
       
       RFSamplerOptions options = new RFSamplerOptions();
       Random rand = new Random(1);
@@ -40,6 +43,8 @@ public class TestFinalVelocity implements Runnable
       {
         NormalEnergy e = NormalEnergy.isotropic(dim);
         DoubleMatrix initPos = DoubleMatrix.randn(dim);
+        
+        outerProdFromExact.addi(initPos.mmul(initPos.transpose()));
         
         options.refreshRate = 0.0;
         options.collectRate = 0.0;
@@ -57,7 +62,17 @@ public class TestFinalVelocity implements Runnable
         betas.add(beta);
         xs.add(x.get(0));
         norms.add(x.norm2());
+        
+        outerProdFromRF.addi(x.mmul(x.transpose()));
       }
+      outerProdFromExact.divi(nSamples);
+      outerProdFromRF.divi(nSamples);
+      
+      System.out.println("Empirical covar from exact samples");
+      System.out.println(outerProdFromExact);
+      
+      System.out.println("Empirical covar from RF samples");
+      System.out.println(outerProdFromRF);
       
       PlotHistogram.from(norms).toPDF(Results.getFileInResultFolder("norm-trajLen=" + fixedTime + ".pdf"));
       PlotHistogram.from(betas).toPDF(Results.getFileInResultFolder("beta-trajLen=" + fixedTime + ".pdf"));

@@ -28,6 +28,8 @@ public class TestLocalOnNormalDist implements Processor
   private ProbabilityModel model;
   private ChainModel modelSpec;
   
+  DoubleMatrix outerProduct = new DoubleMatrix(3,3);
+  
   public static void main(String [] args)
   {
     new TestLocalOnNormalDist().test();
@@ -68,7 +70,7 @@ public class TestLocalOnNormalDist implements Processor
     local.processors.clear();
     local.processors.add(this);
     Random rand = new Random(1);
-    local.iterate(rand , 200000);
+    local.iterate(rand , 200000, Double.POSITIVE_INFINITY);
     
     for (int i = 0; i < 3; i++)
     {
@@ -78,6 +80,10 @@ public class TestLocalOnNormalDist implements Processor
       Assert.assertEquals(0.0, stats.get(i).getMean(), 0.02);
       System.out.println("---");
     }
+    
+    outerProduct.divi(stats.get(0).getN());
+    System.out.println("Empirical covar matrix");
+    System.out.println(outerProduct);
   }
   
   public static class ChainModel
@@ -100,7 +106,14 @@ public class TestLocalOnNormalDist implements Processor
   @Override
   public void process(ProcessorContext context)
   {
+    DoubleMatrix cur = new DoubleMatrix(3);
     for (int i = 0; i < 3; i++)
-      stats.get(i).addValue(modelSpec.vs[i].getValue());
+    {
+      final double value = modelSpec.vs[i].getValue();
+      stats.get(i).addValue(value);
+      cur.put(i, value);
+    }
+    outerProduct.addi(cur.mmul(cur.transpose()));
+    
   }
 }

@@ -114,17 +114,23 @@ public class LocalRFSampler
     trajectories.put(variable, new TrajectoryRay(refreshmentTime, variable.getValue(), currentVelocity));
   }
 
-  public void iterate(Random rand, int numberOfIterations)
+  public void iterate(Random rand, int maxNumberOfIterations, double maxTrajectoryLen)
   {
     globalVelocityRefreshment(rand, 0.0, true);
     for (RayProcessor rayProc : rayProcessors)
       rayProc.init(this);
     double nextGlobalRefreshmentTime = rfOptions.refreshRate == 0 ? Double.POSITIVE_INFINITY : Exponential.generate(rand, rfOptions.refreshRate);
     double currentTime = 0.0;
-    for (int iter = 0; iter < numberOfIterations; iter++)
+    mainLoop : for (int iter = 0; iter < maxNumberOfIterations; iter++)
     {
-      double nextCollisionTime = _collisionQueue.peekTime(); //nextCollision(rand);
-      collectSamples(currentTime, Math.min(nextCollisionTime, nextGlobalRefreshmentTime), rand);
+      double nextCollisionTime = _collisionQueue.peekTime(); 
+      double nextEventTime = Math.min(nextCollisionTime, nextGlobalRefreshmentTime);
+      if (nextEventTime > maxTrajectoryLen)
+      {
+        currentTime = maxTrajectoryLen;
+        break mainLoop;
+      }
+      collectSamples(currentTime, nextEventTime, rand);
       if (nextCollisionTime < nextGlobalRefreshmentTime)
       {
         doCollision(rand);
@@ -137,6 +143,7 @@ public class LocalRFSampler
         nextGlobalRefreshmentTime += Exponential.generate(rand, rfOptions.refreshRate);
       }
     }
+    updateAllVariables(currentTime);
   }
   
   private void collectSamples(double currentTime, double nextEventTime, Random rand)
