@@ -43,4 +43,5 @@ public class TrajectoryRay
     
     return position_t + (time - t) * velocity_t;
   }
+  
 }

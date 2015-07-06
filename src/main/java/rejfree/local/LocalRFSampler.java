@@ -27,6 +27,7 @@ import blang.processing.ProcessorContext;
 import blang.processing.ProcessorFactory;
 import blang.variables.RealVariable;
 import briefj.Indexer;
+import briefj.collections.Counter;
 
 
 
@@ -52,6 +53,7 @@ public class LocalRFSampler
     mcmcOptions.thinningPeriod = 1;
     mcmcOptions.nMCMCSweeps = Integer.MAX_VALUE;
     // mcmcOptions.progressCODA = true;  <-- avoid this, it makes things slow
+    rayProcessors.add(meanVarProcessor);
   }
   
   public void addPointProcessor(Processor processor)
@@ -71,6 +73,51 @@ public class LocalRFSampler
     for (RayProcessor processor : rayProcessors)
       processor.processRay(var, ray, timeTheRayEnds, this);
   }
+  
+  Counter<RealVariable> 
+    sum   = new Counter<RealVariable>(),
+    sumSq = new Counter<RealVariable>();
+  
+  public double getMeanEstimate(RealVariable var) 
+  { 
+    return sum.getCount(var) / currentTime; 
+  }
+  
+  public double getVarEstimate(RealVariable var)
+  {
+    return sumSq.getCount(var) / currentTime;
+  }
+  
+  private final RayProcessor meanVarProcessor = new RayProcessor()
+  {
+    
+    @Override
+    public void init(LocalRFSampler sampler) {}
+    
+    
+    @Override
+    public void processRay(RealVariable var, TrajectoryRay ray, double time,
+        LocalRFSampler sampler)
+    {
+      sum.incrementCount(var, 
+          indefIntegralForMean(ray.position_t, ray.velocity_t, time) 
+        - indefIntegralForMean(ray.position_t, ray.velocity_t, ray.t));
+      
+      sumSq.incrementCount(var, 
+          indefIntegralForVar(ray.position_t, ray.velocity_t, time) 
+        - indefIntegralForVar(ray.position_t, ray.velocity_t, ray.t));
+    }
+    
+    private double indefIntegralForMean(double x0, double v, double t)
+    {
+      return x0 * t + v * t*t / 2.0;
+    }
+    
+    private double indefIntegralForVar(double x0, double v, double t)
+    {
+      return x0*x0 * t + x0 * v * t*t + v*v * t*t*t / 3.0;
+    }
+  };
   
   @SuppressWarnings({"rawtypes", "unchecked"})
   public RecordFullTrajectory addRecordFullTrajectoryProcessor()
@@ -119,13 +166,16 @@ public class LocalRFSampler
     iterate(rand, maxNumberOfIterations, Double.POSITIVE_INFINITY);
   }
 
+  private double currentTime = 0.0;
   public void iterate(Random rand, int maxNumberOfIterations, double maxTrajectoryLen)
   {
-    globalVelocityRefreshment(rand, 0.0, true);
-    for (RayProcessor rayProc : rayProcessors)
-      rayProc.init(this);
+    if (currentTime == 0.0)
+    {
+      globalVelocityRefreshment(rand, 0.0, true);
+      for (RayProcessor rayProc : rayProcessors)
+        rayProc.init(this);
+    }
     double nextGlobalRefreshmentTime = rfOptions.refreshRate == 0 ? Double.POSITIVE_INFINITY : Exponential.generate(rand, rfOptions.refreshRate);
-    double currentTime = 0.0;
     mainLoop : for (int iter = 0; iter < maxNumberOfIterations; iter++)
     {
       double nextCollisionTime = _collisionQueue.peekTime(); 
@@ -148,7 +198,11 @@ public class LocalRFSampler
         nextGlobalRefreshmentTime += Exponential.generate(rand, rfOptions.refreshRate);
       }
     }
+    // Ensure that the state is globally consistent at the end
     updateAllVariables(currentTime);
+    
+    // Ensure that the remaining rays are processed 
+    globalVelocityRefreshment(rand, currentTime, false); 
   }
   
   private void collectSamples(double currentTime, double nextEventTime, Random rand)
