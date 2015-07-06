@@ -25,7 +25,7 @@ public class TestLocalOnLongNormalChain implements Runnable
 {
   double diag = 1;//4.0/3.0;
   double offDiag = 0.5;//- 2.0/3.0;
-  int nPairs = 1; //4;
+  int nPairs = 3; //4;
   Random random = new Random(1);
   
   private int dim() { return nPairs + 1; }
@@ -96,23 +96,24 @@ public class TestLocalOnLongNormalChain implements Runnable
         i[0]++;
       }
     });
-    local.iterate(random, 100000, Double.POSITIVE_INFINITY);
+    local.iterate(random, 1000000, Double.POSITIVE_INFINITY);
     outerSumsRF.divi(i[0]);
     System.out.println("empirical from MC avg (nSamples = " + i[0] + ")");
     System.out.println(outerSumsRF);
     
-    System.out.println("refresh stats:");
-    System.out.println(local.refreshmentTimeStatistics);
-    
     double maxErr = maxError(covarMatrix, outerSumsRF);
     System.out.println("maxError = " + maxErr);
-//    Assert.assertTrue(maxErr < 0.01);
+    Assert.assertTrue(maxErr < 0.05);
     
     System.out.println("from line integral estimator:");
     for (int d = 0; d < dim(); d++)
     {
       RealVariable variable = modelSpec.variables.get(d);
-      System.out.println(local.getMeanEstimate(variable) + "\t" + local.getVarEstimate(variable));
+      double meanEstimate = local.getMeanEstimate(variable);
+      double varEstimate = local.getVarEstimate(variable);
+      System.out.println(meanEstimate + "\t" + varEstimate);
+      Assert.assertTrue(meanEstimate < 0.05);
+      Assert.assertTrue(Math.abs(varEstimate - covarMatrix.get(d,d)) < 0.05);
     } 
   }
   
@@ -172,7 +173,7 @@ public class TestLocalOnLongNormalChain implements Runnable
     
     buildPrecisionMatrices();
     testMCAvgs(true);
-//    testInvariance(true);
+    testInvariance(true);
   }
 
   public static void main(String[] args)

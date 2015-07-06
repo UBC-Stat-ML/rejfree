@@ -12,7 +12,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
 
 import rejfree.StaticUtils;
@@ -91,9 +90,6 @@ public class LocalRFSampler
       p.process(new ProcessorContext(pointCollectIter++, model, mcmcOptions));
   }
   
-  public SummaryStatistics refreshmentTimeStatistics = new SummaryStatistics();
-  private double lastRefreshTime = 0.0;
-
   private void globalVelocityRefreshment(Random rand, double refreshmentTime, boolean initializing)
   {
     final List<Object> variables = model.getLatentVariables();
@@ -111,7 +107,6 @@ public class LocalRFSampler
       }
       else
       {
-//        System.out.println("refreshment");
         updateVariable(variable, refreshmentTime);
         updateTrajectory(refreshmentTime, variable, currentVelocity);
       }
@@ -119,10 +114,6 @@ public class LocalRFSampler
     
     for (Factor factor : model.linearizedFactors())
       updateCandidateCollision(rand, (CollisionFactor) factor, refreshmentTime);
-    
-    if (refreshmentTime != 0.0)
-      refreshmentTimeStatistics.addValue(refreshmentTime - lastRefreshTime); 
-    lastRefreshTime = refreshmentTime;
   }
 
   private void initTrajectory(double refreshmentTime, RealVariable variable, double currentVelocity)
@@ -195,7 +186,6 @@ public class LocalRFSampler
    */
   private <CollisionType> void doCollision(Random rand)
   {
-//    System.out.println("collision");
     // 0 - pop a collision factor
     final Entry<Double,CollisionFactor> collision = _collisionQueue.pollEvent();
     
@@ -328,10 +318,6 @@ public class LocalRFSampler
     for (Object var : model.getLatentVariables())
       updateVariable(var, currentTime);
   }
-  
-  Counter<RealVariable> 
-    sum   = new Counter<RealVariable>(),
-    sumSq = new Counter<RealVariable>();
 
   public double getMeanEstimate(RealVariable var) 
   { 
@@ -368,8 +354,6 @@ public class LocalRFSampler
     public void processRay(RealVariable var, TrajectoryRay ray, double time,
         LocalRFSampler sampler)
     {
-//      System.out.println("processing " + ray + " at time " + time + " for variable " + var);
-      
       sum.incrementCount(var, 
           indefIntegralForMean(ray.position_t, ray.velocity_t, time - ray.t));
       
@@ -387,15 +371,4 @@ public class LocalRFSampler
       return x0*x0 * t + x0 * v * t*t + v*v * t*t*t / 3.0;
     }
   };
-  
-  public static void main(String [] args)
-  {
-    RealVariable var = RealVariable.real(0);
-    TrajectoryRay ray1 = new TrajectoryRay(0.0, 0.0, + 1.0);
-    TrajectoryRay ray2 = new TrajectoryRay(1.0, 1.0, - 1.0);
-    MomentRayProcessor momentProc = new MomentRayProcessor();
-    momentProc.processRay(var, ray1, 1.0, null);
-    momentProc.processRay(var, ray2, 2.0, null);
-    System.out.println(momentProc.getMeanEstimate(var, 2.0));
-  }
 }
