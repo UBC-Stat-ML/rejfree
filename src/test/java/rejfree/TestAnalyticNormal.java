@@ -101,7 +101,7 @@ public class TestAnalyticNormal
       v2 = RealVariable.real();
     
     @DefineFactor
-    NormalFactor normalFactor = NormalFactor.withCovariance(Lists.newArrayList(v1, v2), covar);
+    NumericNormalFactor normalFactor = NumericNormalFactor.withCovariance(Lists.newArrayList(v1, v2), covar);
   }
   
   private static int nIters = 1000;

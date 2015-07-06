@@ -113,6 +113,11 @@ public class LocalRFSampler
       throw new RuntimeException();
     trajectories.put(variable, new TrajectoryRay(refreshmentTime, variable.getValue(), currentVelocity));
   }
+  
+  public void iterate(Random rand, int maxNumberOfIterations)
+  {
+    iterate(rand, maxNumberOfIterations, Double.POSITIVE_INFINITY);
+  }
 
   public void iterate(Random rand, int maxNumberOfIterations, double maxTrajectoryLen)
   {

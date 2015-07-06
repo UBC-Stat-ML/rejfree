@@ -6,12 +6,11 @@ import java.util.Random;
 
 import org.apache.commons.math3.distribution.MultivariateNormalDistribution;
 import org.jblas.DoubleMatrix;
+import org.junit.Assert;
+import org.junit.Test;
 
-import rejfree.GlobalRFSampler;
-import rejfree.NormalEnergy;
-import rejfree.NormalFactor;
-import rejfree.TestFinalVelocity;
 import rejfree.GlobalRFSampler.RFSamplerOptions;
+import rejfree.NumericNormalFactor;
 import rejfree.local.CollisionFactor;
 import rejfree.local.LocalRFSampler;
 import bayonet.math.JBlasUtils;
@@ -20,7 +19,6 @@ import blang.annotations.DefineFactor;
 import blang.processing.Processor;
 import blang.processing.ProcessorContext;
 import blang.variables.RealVariable;
-import blang.variables.RealVariableProcessor;
 
 
 
@@ -28,7 +26,7 @@ public class SimpleLocalTest implements Runnable
 {
   double diag = 4.0/3.0;
   double offDiag = - 2.0/3.0;
-  int nPairs = 2;
+  int nPairs = 4;
   Random random = new Random(1);
   
   private int dim() { return nPairs + 1; }
@@ -41,6 +39,12 @@ public class SimpleLocalTest implements Runnable
   {
     return new DoubleMatrix(normal.sample());
   }
+  
+  public static double maxError(DoubleMatrix guess, DoubleMatrix truth)
+  {
+    return (guess.sub(truth)).normmax();
+  }
+  
   
   private void buildPrecisionMatrices()
   {
@@ -94,10 +98,14 @@ public class SimpleLocalTest implements Runnable
         i[0]++;
       }
     });
-    local.iterate(random, 10000, Double.POSITIVE_INFINITY);
+    local.iterate(random, 100000, Double.POSITIVE_INFINITY);
     outerSumsRF.divi(i[0]);
     System.out.println("empirical from MC avg (nSamples = " + i[0] + ")");
     System.out.println(outerSumsRF);
+    
+    double maxErr = maxError(covarMatrix, outerSumsRF);
+    System.out.println("maxError = " + maxErr);
+    Assert.assertTrue(maxErr < 0.01);
   }
   
   public void testInvariance(boolean useAnalytic)
@@ -106,8 +114,8 @@ public class SimpleLocalTest implements Runnable
     options.refreshRate = 0.0;
     options.collectRate = 0.0;
 
-    double fixedTime = 10;
-    int nRepeats = 10000;
+    double fixedTime = 2;
+    int nRepeats = 20000;
     
     DoubleMatrix 
       outerSumsExact = new DoubleMatrix(dim(),dim()),
@@ -122,8 +130,6 @@ public class SimpleLocalTest implements Runnable
       Model modelSpec = new Model(exactSample.data, useAnalytic);
       ProbabilityModel model = new ProbabilityModel(modelSpec);
       LocalRFSampler local = new LocalRFSampler(model, options);
-//        ProcessToList toListProcessor = new ProcessToList(modelSpec);
-//        local.addPointProcessor(toListProcessor);
       local.iterate(random, Integer.MAX_VALUE, fixedTime);
       rfSampl = currentPositionToVector(modelSpec);
       outerSumsRF.addi(rfSampl.mmul(rfSampl.transpose()));
@@ -136,28 +142,11 @@ public class SimpleLocalTest implements Runnable
     
     System.out.println("Empirical covar from RF samples");
     System.out.println(outerSumsRF);
+    
+    double maxErr = maxError(covarMatrix, outerSumsRF);
+    System.out.println("maxError = " + maxErr);
+    Assert.assertTrue(maxErr < 0.02);
   }
-  
-//  class ProcessToList implements Processor
-//  {
-//    List<DoubleMatrix> result = new ArrayList<>();
-//    final Model model;
-//    
-//    private ProcessToList(Model model)
-//    {
-//      this.model = model;
-//    }
-//
-//    @Override
-//    public void process(ProcessorContext context)
-//    {
-//      final int nVars = model.variables.size();
-//      DoubleMatrix current = new DoubleMatrix(nVars);
-//      for (int i = 0; i < nVars; i++)
-//        current.put(i, model.variables.get(i).getValue());
-//      result.add(current);
-//    }
-//  }
   
   static DoubleMatrix currentPositionToVector(Model model)
   {
@@ -168,6 +157,7 @@ public class SimpleLocalTest implements Runnable
     return current;
   }
   
+  @Test
   public void run()
   {
     org.jblas.util.Random.seed(random.nextLong());
@@ -212,8 +202,8 @@ public class SimpleLocalTest implements Runnable
         
         CollisionFactor f = 
             useAnalytic ? 
-            SpatialNormalFactor.newBinaryFactor(localPrec, current, prev) :
-            NormalFactor.withPrecision(variables, localPrec);
+            NormalFactor.newBinaryFactor(localPrec, current, prev) :
+            NumericNormalFactor.withPrecision(variables, localPrec);
         
         result.add(f);
         prev = current;

@@ -7,7 +7,6 @@ import org.jblas.DoubleMatrix;
 import org.junit.Assert;
 import org.junit.Test;
 
-import bayonet.opt.DifferentiableFunction;
 import bayonet.opt.GradientValidator;
 import blang.variables.IntegerVariable;
 import blang.variables.RealVariable;
@@ -48,78 +47,78 @@ public class TestGradient
       Assert.assertTrue(GradientValidator.isRandomAnalyticDirectionalDerivCloseToNumerical(rand, cpf.energyFunction));
   }
   
-  @Test
-  public void testSpatialNormalFactorGradient()
-  {
-    Random rand = new Random(1);
-    double variance = 1.7;
-    RealVariable variable0 = new RealVariable(rand.nextDouble());
-    RealVariable variable1 = new RealVariable(rand.nextDouble());
-    SpatialNormalFactor f = SpatialNormalFactor.newBinaryFactor(variance, variable0, variable1);
-    
-    DifferentiableFunction df = new DifferentiableFunction() {
-      
-      @Override
-      public double valueAt(double[] x)
-      {
-        variable0.setValue(x[0]);
-        variable1.setValue(x[1]);
-        double logDensity = f.logDensity();
-        return logDensity;
-      }
-      
-      @Override
-      public int dimension()
-      {
-        return 2;
-      }
-      
-      @Override
-      public double[] derivativeAt(double[] x)
-      {
-        variable0.setValue(x[0]);
-        variable1.setValue(x[1]);
-        return f.gradient().data;
-      }
-    };
-    
-    for (int i = 0; i < 10; i++)
-      Assert.assertTrue(GradientValidator.isRandomAnalyticDirectionalDerivCloseToNumerical(rand, df));
-  }
+//  @Test
+//  public void testSpatialNormalFactorGradient()
+//  {
+//    Random rand = new Random(1);
+//    double variance = 1.7;
+//    RealVariable variable0 = new RealVariable(rand.nextDouble());
+//    RealVariable variable1 = new RealVariable(rand.nextDouble());
+//    SpatialNormalFactor f = SpatialNormalFactor.newBinaryFactor(variance, variable0, variable1);
+//    
+//    DifferentiableFunction df = new DifferentiableFunction() {
+//      
+//      @Override
+//      public double valueAt(double[] x)
+//      {
+//        variable0.setValue(x[0]);
+//        variable1.setValue(x[1]);
+//        double logDensity = f.logDensity();
+//        return logDensity;
+//      }
+//      
+//      @Override
+//      public int dimension()
+//      {
+//        return 2;
+//      }
+//      
+//      @Override
+//      public double[] derivativeAt(double[] x)
+//      {
+//        variable0.setValue(x[0]);
+//        variable1.setValue(x[1]);
+//        return f.gradient().data;
+//      }
+//    };
+//    
+//    for (int i = 0; i < 10; i++)
+//      Assert.assertTrue(GradientValidator.isRandomAnalyticDirectionalDerivCloseToNumerical(rand, df));
+//  }
   
-  @Test
-  public void testSpatialNormalUnaryFactorGradient()
-  {
-    Random rand = new Random(7);
-    double variance = 1.7;
-    RealVariable variable0 = new RealVariable(rand.nextDouble());
-    SpatialNormalFactor f = SpatialNormalFactor.newUnaryFactor(variance, variable0);
-    
-    DifferentiableFunction df = new DifferentiableFunction() {
-      
-      @Override
-      public double valueAt(double[] x)
-      {
-        variable0.setValue(x[0]);
-        double logDensity = f.logDensity();
-        return logDensity;
-      }
-      
-      @Override
-      public int dimension()
-      {
-        return 1;
-      }
-      
-      @Override
-      public double[] derivativeAt(double[] x)
-      {
-        variable0.setValue(x[0]);
-        return f.gradient().data;
-      }
-    };
-    
-    for (int i = 0; i < 10; i++)
-      Assert.assertTrue(GradientValidator.isRandomAnalyticDirectionalDerivCloseToNumerical(rand, df));
-  }
+//  @Test
+//  public void testSpatialNormalUnaryFactorGradient()
+//  {
+//    Random rand = new Random(7);
+//    double variance = 1.7;
+//    RealVariable variable0 = new RealVariable(rand.nextDouble());
+//    SpatialNormalFactor f = SpatialNormalFactor.newUnaryFactor(variance, variable0);
+//    
+//    DifferentiableFunction df = new DifferentiableFunction() {
+//      
+//      @Override
+//      public double valueAt(double[] x)
+//      {
+//        variable0.setValue(x[0]);
+//        double logDensity = f.logDensity();
+//        return logDensity;
+//      }
+//      
+//      @Override
+//      public int dimension()
+//      {
+//        return 1;
+//      }
+//      
+//      @Override
+//      public double[] derivativeAt(double[] x)
+//      {
+//        variable0.setValue(x[0]);
+//        return f.gradient().data;
+//      }
+//    };
+//    
+//    for (int i = 0; i < 10; i++)
+//      Assert.assertTrue(GradientValidator.isRandomAnalyticDirectionalDerivCloseToNumerical(rand, df));
+//  }
 }

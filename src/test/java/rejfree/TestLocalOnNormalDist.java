@@ -96,10 +96,10 @@ public class TestLocalOnNormalDist implements Processor
     public RealVariable [] vs = new RealVariable[]{v1, v2, v3};
 
     @DefineFactor
-    NormalFactor f12 = NormalFactor.withCovariance(Lists.newArrayList(v1, v2), localCovar);
+    NumericNormalFactor f12 = NumericNormalFactor.withCovariance(Lists.newArrayList(v1, v2), localCovar);
     
     @DefineFactor
-    NormalFactor f23 = NormalFactor.withCovariance(Lists.newArrayList(v2, v3), localCovar);
+    NumericNormalFactor f23 = NumericNormalFactor.withCovariance(Lists.newArrayList(v2, v3), localCovar);
   }
 
   private List<SummaryStatistics> stats = new ArrayList<>();

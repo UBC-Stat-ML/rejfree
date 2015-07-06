@@ -13,13 +13,14 @@ import org.jblas.Solve;
 import bayonet.distributions.Bernoulli;
 import bayonet.math.NumericalUtils;
 import bayonet.opt.DifferentiableFunction;
-import bayonet.rplot.PlotLine;
 import static rejfree.StaticUtils.*;
 
 
 /**
  * Uses a polynomial fit to the directional derivative in order to approximate
  * a lower bound for collision. 
+ * 
+ * Warning: not extensively tested, potential bug
  * 
  * @author Alexandre Bouchard (alexandre.bouchard@gmail.com)
  *
@@ -143,13 +144,13 @@ public class DerivativePolyFitCollisionSolver
     }
   }
 
-  private double smallestPositiveSolution(double[] quadraticRealRoots)
-  {
-    for (double d : quadraticRealRoots)
-      if (d >= 0)
-        return d;
-    throw new RuntimeException();
-  }
+//  private double smallestPositiveSolution(double[] quadraticRealRoots)
+//  {
+//    for (double d : quadraticRealRoots)
+//      if (d >= 0)
+//        return d;
+//    throw new RuntimeException();
+//  }
 
   private DoubleFunction<Double> directionalDerivative(
       final DoubleMatrix initialPoint, 

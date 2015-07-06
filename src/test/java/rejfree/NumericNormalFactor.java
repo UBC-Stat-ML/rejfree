@@ -13,8 +13,16 @@ import blang.variables.RealVariable;
 import briefj.BriefLog;
 
 
-
-public class NormalFactor implements CollisionFactor
+/**
+ * An implementation of the normal factor where the collision time is 
+ * computed numerically. Mostly for debugging and benchmarking purpose, 
+ * in most cases, use NormalFactor instead, which compute the collision 
+ * time analytically.
+ * 
+ * @author Alexandre Bouchard (alexandre.bouchard@gmail.com)
+ *
+ */
+public class NumericNormalFactor implements CollisionFactor
 {
   @FactorComponent
   public final FactorList<RealVariable> variables;
@@ -22,17 +30,17 @@ public class NormalFactor implements CollisionFactor
   private final NormalEnergy energyFunction;
   private final PegasusConvexCollisionSolver solver;
   
-  public static NormalFactor withPrecision(List<RealVariable> variables, DoubleMatrix precision)
+  public static NumericNormalFactor withPrecision(List<RealVariable> variables, DoubleMatrix precision)
   {
-    return new NormalFactor(variables, NormalEnergy.withPrecision(precision));
+    return new NumericNormalFactor(variables, NormalEnergy.withPrecision(precision));
   }
   
-  public static NormalFactor withCovariance(List<RealVariable> variables, DoubleMatrix covar)
+  public static NumericNormalFactor withCovariance(List<RealVariable> variables, DoubleMatrix covar)
   {
-    return new NormalFactor(variables, NormalEnergy.withCovariance(covar));
+    return new NumericNormalFactor(variables, NormalEnergy.withCovariance(covar));
   }
   
-  private NormalFactor(List<RealVariable> variables, NormalEnergy energyFunction)
+  private NumericNormalFactor(List<RealVariable> variables, NormalEnergy energyFunction)
   {
     BriefLog.warnOnce("WARNING: NormalFactor collision could be computed analytically.");
     this.variables = FactorList.ofArguments(variables, true);

@@ -5,7 +5,6 @@ import org.jblas.DoubleMatrix;
 
 import bayonet.math.JBlasUtils;
 import bayonet.opt.DifferentiableFunction;
-import briefj.BriefLog;
 
 
 /**
@@ -23,11 +22,6 @@ public class NormalEnergy implements DifferentiableFunction
   
   public static NormalEnergy isotropic(int dim)
   {
-    BriefLog.warnOnce("Warning: the calculation of the normalization of NormalEnergy has "
-        + "been temporarily disable, as well as its test (in TestNormalEnergy), "
-        + "although the test is correct. This should not be a problem as long as parameters of this "
-        + "energy are not resampled (a functionality that is not currently implemented anyways.");
-    
     DoubleMatrix precision = DoubleMatrix.eye(dim);
     return new NormalEnergy(precision);
   }
@@ -60,7 +54,6 @@ public class NormalEnergy implements DifferentiableFunction
   {
     DoubleMatrix point = new DoubleMatrix(x);
     return 0.5 * point.transpose().mmul(precisionMatrix).mmul(point).get(0)
-//        ;
         - logConstant; // Note: this would be added to the log density, but is subtracted here because we need the energy
   }
 

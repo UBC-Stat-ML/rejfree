@@ -9,8 +9,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.jblas.DoubleMatrix;
-
 import rejfree.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFSampler;
 import blang.MCMCAlgorithm;
@@ -52,7 +50,7 @@ public class SpatialBlang implements Processor
     Map<Integer, RealVariable> variables = variables();
     
     @DefineFactor
-    public final List<SpatialNormalFactor> geographicPrior = geographicPrior(mainOptions.getPriorTransitionVariance(), mainOptions.getPriorInitialVariance());
+    public final List<NormalFactor> geographicPrior = geographicPrior(mainOptions.getPriorTransitionVariance(), mainOptions.getPriorInitialVariance());
     
     @DefineFactor(onObservations = true)
     public final List<ConvolvedPoissonFactor> likelihood = likelihood();
@@ -84,9 +82,10 @@ public class SpatialBlang implements Processor
       return result;
     }
 
-    private List<SpatialNormalFactor> geographicPrior(double priorTransitionVariance, double priorInitialVariance)
+    @SuppressWarnings("unused")
+    private List<NormalFactor> geographicPrior(double priorTransitionVariance, double priorInitialVariance)
     {
-      List<SpatialNormalFactor> result = new ArrayList<>();
+      List<NormalFactor> result = new ArrayList<>();
       
       for (Map<String,String> line : BriefIO.readLines(mainOptions.getGeoDataCSVFile()).indexCSV())
       {
@@ -114,9 +113,10 @@ public class SpatialBlang implements Processor
 //        }
 //        NormalFactor f = NormalFactor.withPrecision(variables, new DoubleMatrix(covar));
         
-        SpatialNormalFactor f = prev == null ? 
-          SpatialNormalFactor.newUnaryFactor(priorInitialVariance, current) : 
-          SpatialNormalFactor.newBinaryFactor(priorTransitionVariance, current, prev);
+        NormalFactor f = null; if (true) throw new RuntimeException("Should fix and uncomment code below");
+//        prev == null ? 
+//          SpatialNormalFactor.newUnaryFactor(priorInitialVariance, current) : 
+//          SpatialNormalFactor.newBinaryFactor(priorTransitionVariance, current, prev);
         
         result.add(f);
       }
