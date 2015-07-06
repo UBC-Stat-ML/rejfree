@@ -32,7 +32,7 @@ public class GlobalRFSampler
   public static class RFSamplerOptions
   {
     @Option
-    public double refreshRate = 0.0001;
+    public double refreshRate = 1.0;
     
     @Option
     public double collectRate = 1.0;
@@ -83,6 +83,20 @@ public class GlobalRFSampler
       _cachedOptimizePosition = optimizePosition(this.energy);
     return _cachedOptimizePosition;
   }
+  
+  private DoubleMatrix 
+    mean, 
+    variance;
+  
+  public DoubleMatrix getMean()
+  {
+    return mean;
+  }
+  
+  public DoubleMatrix getVariance()
+  {
+    return variance;
+  }
 
   public void iterate(Random rand, int numberOfIterations)
   {
@@ -90,7 +104,9 @@ public class GlobalRFSampler
       currentVelocity = uniformOnUnitBall(energy.dimension(), rand);
     
     trajectory.add(currentPosition);
-    
+    double totalTime = 0.0;
+    mean = new DoubleMatrix(dimensionality());
+    variance = new DoubleMatrix(dimensionality(),dimensionality());
     for (int iter = 0; iter < numberOfIterations; iter++)
     {
       // simulate event
@@ -98,6 +114,7 @@ public class GlobalRFSampler
       double collisionTime = solver.collisionTime(currentPosition, currentVelocity, energy, exponential);
       double refreshTime = options.refreshRate == 0 ? Double.POSITIVE_INFINITY : Exponential.generate(rand, options.refreshRate);
       double eventTime = Math.min(collisionTime, refreshTime);
+      totalTime += eventTime;
       collisionToRefreshmentRatio.addValue(collisionTime/refreshTime);
       
       // collect state
@@ -112,6 +129,8 @@ public class GlobalRFSampler
       else
         currentVelocity = refreshVelocity(currentPosition, currentVelocity, rand); 
     }
+    mean.divi(totalTime);
+    variance.divi(totalTime);
   }
   
   public void setVelocity(DoubleMatrix velocity)
@@ -137,6 +156,13 @@ public class GlobalRFSampler
   private void collectSamples(DoubleMatrix initialPosition,
       DoubleMatrix velocity, double eventTime, Random rand)
   {
+    mean.addi(initialPosition.mul(eventTime)
+        .addi(velocity .mul(eventTime*eventTime/2.0)));
+    variance
+        .addi(initialPosition.mmul(initialPosition.transpose()).mul(eventTime))
+        .addi(initialPosition.mmul(velocity.transpose()).mul(eventTime*eventTime))
+        .addi(velocity.mmul(velocity.transpose()).mul(eventTime*eventTime*eventTime/3.0));
+    
     if (options.collectRate == 0.0)
       return;
     double timeConsumed = Exponential.generate(rand, options.collectRate);

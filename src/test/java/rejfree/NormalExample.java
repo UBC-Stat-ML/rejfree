@@ -23,10 +23,6 @@ import briefj.opt.OptionSet;
 import briefj.run.Mains;
 import briefj.run.Results;
 
-
-
-
-
 public class NormalExample implements Runnable
 {
   
@@ -51,7 +47,7 @@ public class NormalExample implements Runnable
   public double var2 = 1.0;
   
   @Option
-  public double cov = 0.7;
+  public double cov = 0.5;
 
   @Override
   public void run()
@@ -100,6 +96,8 @@ public class NormalExample implements Runnable
     System.out.println();
     File marginalHistDir = Results.getFolderInResultFolder("marginal-histograms");
     System.out.println("Printing marginal histograms in " + marginalHistDir);
+    System.out.println("mean from full traj: " + sampler.getMean());
+    System.out.println("var from full traj: " + sampler.getVariance());
     for (int d = 0; d < 2; d++)
     {
       List<Double> coordinates = Lists.newArrayList();

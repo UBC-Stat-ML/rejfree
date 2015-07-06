@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
 
 import rejfree.StaticUtils;
@@ -53,7 +54,7 @@ public class LocalRFSampler
     mcmcOptions.thinningPeriod = 1;
     mcmcOptions.nMCMCSweeps = Integer.MAX_VALUE;
     // mcmcOptions.progressCODA = true;  <-- avoid this, it makes things slow
-    rayProcessors.add(meanVarProcessor);
+    rayProcessors.add(momentProcessor);
   }
   
   public void addPointProcessor(Processor processor)
@@ -74,51 +75,6 @@ public class LocalRFSampler
       processor.processRay(var, ray, timeTheRayEnds, this);
   }
   
-  Counter<RealVariable> 
-    sum   = new Counter<RealVariable>(),
-    sumSq = new Counter<RealVariable>();
-  
-  public double getMeanEstimate(RealVariable var) 
-  { 
-    return sum.getCount(var) / currentTime; 
-  }
-  
-  public double getVarEstimate(RealVariable var)
-  {
-    return sumSq.getCount(var) / currentTime;
-  }
-  
-  private final RayProcessor meanVarProcessor = new RayProcessor()
-  {
-    
-    @Override
-    public void init(LocalRFSampler sampler) {}
-    
-    
-    @Override
-    public void processRay(RealVariable var, TrajectoryRay ray, double time,
-        LocalRFSampler sampler)
-    {
-      sum.incrementCount(var, 
-          indefIntegralForMean(ray.position_t, ray.velocity_t, time) 
-        - indefIntegralForMean(ray.position_t, ray.velocity_t, ray.t));
-      
-      sumSq.incrementCount(var, 
-          indefIntegralForVar(ray.position_t, ray.velocity_t, time) 
-        - indefIntegralForVar(ray.position_t, ray.velocity_t, ray.t));
-    }
-    
-    private double indefIntegralForMean(double x0, double v, double t)
-    {
-      return x0 * t + v * t*t / 2.0;
-    }
-    
-    private double indefIntegralForVar(double x0, double v, double t)
-    {
-      return x0*x0 * t + x0 * v * t*t + v*v * t*t*t / 3.0;
-    }
-  };
-  
   @SuppressWarnings({"rawtypes", "unchecked"})
   public RecordFullTrajectory addRecordFullTrajectoryProcessor()
   {
@@ -134,24 +90,39 @@ public class LocalRFSampler
     for (Processor p : processors)
       p.process(new ProcessorContext(pointCollectIter++, model, mcmcOptions));
   }
+  
+  public SummaryStatistics refreshmentTimeStatistics = new SummaryStatistics();
+  private double lastRefreshTime = 0.0;
 
   private void globalVelocityRefreshment(Random rand, double refreshmentTime, boolean initializing)
   {
     final List<Object> variables = model.getLatentVariables();
     final int dimensionality = variables.size();
     final DoubleMatrix uniformOnUnitBall = StaticUtils.uniformOnUnitBall(variables.size(), rand);
+    
     for (int i = 0; i < dimensionality; i++)
     {
       RealVariable variable = (RealVariable) variables.get(i);
       double currentVelocity = uniformOnUnitBall.get(i);
       if (initializing)
+      {
         initTrajectory(refreshmentTime, variable, currentVelocity);
+        updateVariable(variable, refreshmentTime);
+      }
       else
+      {
+//        System.out.println("refreshment");
+        updateVariable(variable, refreshmentTime);
         updateTrajectory(refreshmentTime, variable, currentVelocity);
-        
+      }
     }
+    
     for (Factor factor : model.linearizedFactors())
       updateCandidateCollision(rand, (CollisionFactor) factor, refreshmentTime);
+    
+    if (refreshmentTime != 0.0)
+      refreshmentTimeStatistics.addValue(refreshmentTime - lastRefreshTime); 
+    lastRefreshTime = refreshmentTime;
   }
 
   private void initTrajectory(double refreshmentTime, RealVariable variable, double currentVelocity)
@@ -193,8 +164,8 @@ public class LocalRFSampler
       }
       else
       {
-        globalVelocityRefreshment(rand, nextGlobalRefreshmentTime, false);
         currentTime = nextGlobalRefreshmentTime;
+        globalVelocityRefreshment(rand, nextGlobalRefreshmentTime, false);
         nextGlobalRefreshmentTime += Exponential.generate(rand, rfOptions.refreshRate);
       }
     }
@@ -224,6 +195,7 @@ public class LocalRFSampler
    */
   private <CollisionType> void doCollision(Random rand)
   {
+//    System.out.println("collision");
     // 0 - pop a collision factor
     final Entry<Double,CollisionFactor> collision = _collisionQueue.pollEvent();
     
@@ -355,5 +327,75 @@ public class LocalRFSampler
   {
     for (Object var : model.getLatentVariables())
       updateVariable(var, currentTime);
+  }
+  
+  Counter<RealVariable> 
+    sum   = new Counter<RealVariable>(),
+    sumSq = new Counter<RealVariable>();
+
+  public double getMeanEstimate(RealVariable var) 
+  { 
+    return momentProcessor.getMeanEstimate(var, currentTime); 
+  }
+  
+  public double getVarEstimate(RealVariable var)
+  {
+    return momentProcessor.getVarEstimate(var, currentTime);
+  }
+  
+  private final MomentRayProcessor momentProcessor = new MomentRayProcessor();
+  
+  private static class MomentRayProcessor implements RayProcessor
+  {
+    Counter<RealVariable> 
+      sum   = new Counter<RealVariable>(),
+      sumSq = new Counter<RealVariable>();
+
+    public double getMeanEstimate(RealVariable var, double currentTime) 
+    { 
+      return sum.getCount(var) / currentTime; 
+    }
+    
+    public double getVarEstimate(RealVariable var, double currentTime)
+    {
+      return sumSq.getCount(var) / currentTime;
+    }
+    
+    @Override
+    public void init(LocalRFSampler sampler) {}
+    
+    @Override
+    public void processRay(RealVariable var, TrajectoryRay ray, double time,
+        LocalRFSampler sampler)
+    {
+//      System.out.println("processing " + ray + " at time " + time + " for variable " + var);
+      
+      sum.incrementCount(var, 
+          indefIntegralForMean(ray.position_t, ray.velocity_t, time - ray.t));
+      
+      sumSq.incrementCount(var, 
+          indefIntegralForVar(ray.position_t, ray.velocity_t, time - ray.t));
+    }
+    
+    private double indefIntegralForMean(double x0, double v, double t)
+    {
+      return x0 * t + v * t*t / 2.0;
+    }
+    
+    private double indefIntegralForVar(double x0, double v, double t)
+    {
+      return x0*x0 * t + x0 * v * t*t + v*v * t*t*t / 3.0;
+    }
+  };
+  
+  public static void main(String [] args)
+  {
+    RealVariable var = RealVariable.real(0);
+    TrajectoryRay ray1 = new TrajectoryRay(0.0, 0.0, + 1.0);
+    TrajectoryRay ray2 = new TrajectoryRay(1.0, 1.0, - 1.0);
+    MomentRayProcessor momentProc = new MomentRayProcessor();
+    momentProc.processRay(var, ray1, 1.0, null);
+    momentProc.processRay(var, ray2, 2.0, null);
+    System.out.println(momentProc.getMeanEstimate(var, 2.0));
   }
 }

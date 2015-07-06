@@ -43,5 +43,11 @@ public class TrajectoryRay
     
     return position_t + (time - t) * velocity_t;
   }
-  
+
+  @Override
+  public String toString()
+  {
+    return "TrajectoryRay [t=" + t + ", position_t=" + position_t
+        + ", velocity_t=" + velocity_t + "]";
+  }
 }
