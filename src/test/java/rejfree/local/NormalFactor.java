@@ -55,7 +55,7 @@ public class NormalFactor implements CollisionFactor
     return new NormalFactor(JBlasUtils.inversePositiveMatrix(covar), variables);
   }
   
-  private NormalFactor(DoubleMatrix precision, List<RealVariable> variables)
+  public NormalFactor(DoubleMatrix precision, List<RealVariable> variables)
   {
     this.variables = FactorList.ofArguments(variables, true);
     this.precision = precision.dup();
