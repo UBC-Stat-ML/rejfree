@@ -13,6 +13,7 @@ import com.google.common.collect.Lists;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFSampler;
+import rejfree.local.NumericNormalFactor;
 import rejfree.local.RecordFullTrajectory;
 import bayonet.math.NumericalUtils;
 import bayonet.opt.DifferentiableFunction;

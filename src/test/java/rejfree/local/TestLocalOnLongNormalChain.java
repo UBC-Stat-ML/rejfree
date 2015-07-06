@@ -1,4 +1,4 @@
-package rejfree.spatial;
+package rejfree.local;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +10,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
-import rejfree.NumericNormalFactor;
 import rejfree.local.CollisionFactor;
 import rejfree.local.LocalRFSampler;
 import bayonet.math.JBlasUtils;
@@ -22,7 +21,7 @@ import blang.variables.RealVariable;
 
 
 
-public class SimpleLocalTest implements Runnable
+public class TestLocalOnLongNormalChain implements Runnable
 {
   double diag = 4.0/3.0;
   double offDiag = - 2.0/3.0;
@@ -169,7 +168,7 @@ public class SimpleLocalTest implements Runnable
 
   public static void main(String[] args)
   {
-    new SimpleLocalTest().run();
+    new TestLocalOnLongNormalChain().run();
   }
   
   public class Model

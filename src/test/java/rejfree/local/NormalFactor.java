@@ -1,4 +1,4 @@
-package rejfree.spatial;
+package rejfree.local;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,10 +1,13 @@
-package rejfree;
+package rejfree.local;
 
 import java.util.List;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.jblas.DoubleMatrix;
 
+import rejfree.NormalEnergy;
+import rejfree.PegasusConvexCollisionSolver;
+import rejfree.StaticUtils;
 import rejfree.local.CollisionContext;
 import rejfree.local.CollisionFactor;
 import blang.annotations.FactorComponent;
