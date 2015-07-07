@@ -30,7 +30,10 @@ public class LocalVsGlobal implements Runnable
   public boolean isLocal = false;
   
   @Option
-  public double timeInterval = 1000.0;
+  public double timeInterval = Double.POSITIVE_INFINITY;
+  
+  @Option
+  public int maxSteps = 1000;
   
   private NormalChain chain;
 
@@ -54,7 +57,7 @@ public class LocalVsGlobal implements Runnable
       NormalChainModel modelSpec = chain.new NormalChainModel(exactSample.data, isLocal);
       ProbabilityModel model = new ProbabilityModel(modelSpec);
       LocalRFSampler local = new LocalRFSampler(model, rfOptions);
-      local.iterate(this.options.random, Integer.MAX_VALUE, timeInterval);
+      local.iterate(this.options.random, maxSteps, timeInterval);
       
       for (int d = 0; d < modelSpec.variables.size(); d++)
       {
