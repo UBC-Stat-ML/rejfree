@@ -72,7 +72,7 @@ public class NormalFactor implements CollisionFactor
   
   private double dotProd(DoubleMatrix x1, DoubleMatrix x2)
   {
-    return x1.transpose().mmul(precision).mmul(x2).get(0);
+    return x1.transpose().mmuli(precision).dot(x2);
   }
   
   public int dim()
