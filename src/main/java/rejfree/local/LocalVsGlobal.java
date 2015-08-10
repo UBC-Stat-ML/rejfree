@@ -1,7 +1,11 @@
 package rejfree.local;
 
+import java.util.concurrent.TimeUnit;
+
 import org.jblas.DoubleMatrix;
 import org.junit.Test;
+
+import com.google.common.base.Stopwatch;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.NormalChain.NormalChainModel;
@@ -30,7 +34,7 @@ public class LocalVsGlobal implements Runnable
   public boolean isLocal = false;
   
   @Option
-  public double timeInterval = Double.POSITIVE_INFINITY;
+  public long maxRunningTimeMilli = Long.MAX_VALUE;
   
   @Option
   public int maxSteps = 1000;
@@ -45,7 +49,7 @@ public class LocalVsGlobal implements Runnable
   @Test
   public void run()
   {
-    org.jblas.util.Random.seed(options.random.nextLong()); // not needed?
+    org.jblas.util.Random.seed(options.random.nextLong());
     chain = new NormalChain(options);
     OutputManager output = new OutputManager();
     output.setOutputFolder(Results.getResultFolder());
@@ -57,15 +61,18 @@ public class LocalVsGlobal implements Runnable
       NormalChainModel modelSpec = chain.new NormalChainModel(exactSample.data, isLocal);
       ProbabilityModel model = new ProbabilityModel(modelSpec);
       LocalRFSampler local = new LocalRFSampler(model, rfOptions);
-      local.iterate(this.options.random, maxSteps, timeInterval);
+      Stopwatch watch = Stopwatch.createStarted();
+      local.iterate(this.options.random, maxSteps, Double.POSITIVE_INFINITY, maxRunningTimeMilli);
+      long elapsed = watch.elapsed(TimeUnit.MILLISECONDS);
+      output.printWrite("time", "seed", seed, "timeMilli", elapsed, "nCollisions", local.getNCollisions());
       
       for (int d = 0; d < modelSpec.variables.size(); d++)
       {
-        RealVariable var = modelSpec.variables.get(d);
-        double trueVar = chain.covarMatrix.get(d, d);
-        double estimate = local.getVarEstimate(var);
-        double error = Math.abs(trueVar - estimate);
-        output.printWrite("results", "dim", d, "seed", seed, "varError", error);
+        RealVariable variable = modelSpec.variables.get(d);
+        double truth = chain.covarMatrix.get(d, d);
+        double estimate = local.getVarEstimate(variable);
+        double error = Math.abs(truth - estimate);
+        output.printWrite("results", "dim", d, "seed", seed, "absError", error, "relError", (error/truth), "truth", truth, "estimate", estimate);
       }
     }
     
