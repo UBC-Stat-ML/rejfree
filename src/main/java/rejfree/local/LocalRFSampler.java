@@ -10,9 +10,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.jblas.DoubleMatrix;
+
+import com.google.common.base.Stopwatch;
 
 import rejfree.StaticUtils;
 import rejfree.GlobalRFSampler.RFSamplerOptions;
@@ -43,6 +46,8 @@ public class LocalRFSampler
   
   public final List<Processor> processors = new ArrayList<Processor>();
   public final List<RayProcessor> rayProcessors = new ArrayList<>();
+  
+  private int nCollisions = 0;
   
   public LocalRFSampler(ProbabilityModel model, RFSamplerOptions options)
   {
@@ -125,12 +130,18 @@ public class LocalRFSampler
   
   public void iterate(Random rand, int maxNumberOfIterations)
   {
-    iterate(rand, maxNumberOfIterations, Double.POSITIVE_INFINITY);
+    iterate(rand, maxNumberOfIterations, Double.POSITIVE_INFINITY, Long.MAX_VALUE);
+  }
+  
+  public void iterate(Random rand, int maxNumberOfIterations, double maxTrajectoryLen)
+  {
+    iterate(rand, maxNumberOfIterations, maxTrajectoryLen, Long.MAX_VALUE);
   }
 
   private double currentTime = 0.0;
-  public void iterate(Random rand, int maxNumberOfIterations, double maxTrajectoryLen)
+  public void iterate(Random rand, int maxNumberOfIterations, double maxTrajectoryLen, long maxTimeMilli)
   {
+    Stopwatch watch = maxTimeMilli == Long.MAX_VALUE ? null : Stopwatch.createStarted();
     if (currentTime == 0.0)
     {
       globalVelocityRefreshment(rand, 0.0, true);
@@ -140,6 +151,9 @@ public class LocalRFSampler
     double nextGlobalRefreshmentTime = rfOptions.refreshRate == 0 ? Double.POSITIVE_INFINITY : Exponential.generate(rand, rfOptions.refreshRate);
     mainLoop : for (int iter = 0; iter < maxNumberOfIterations; iter++)
     {
+      if (watch != null && watch.elapsed(TimeUnit.MILLISECONDS) > maxTimeMilli)
+        break mainLoop;
+      
       double nextCollisionTime = _collisionQueue.peekTime(); 
       double nextEventTime = Math.min(nextCollisionTime, nextGlobalRefreshmentTime);
       if (nextEventTime > maxTrajectoryLen)
@@ -186,6 +200,8 @@ public class LocalRFSampler
    */
   private <CollisionType> void doCollision(Random rand)
   {
+    nCollisions++;
+    
     // 0 - pop a collision factor
     final Entry<Double,CollisionFactor> collision = _collisionQueue.pollEvent();
     
@@ -317,6 +333,11 @@ public class LocalRFSampler
   {
     for (Object var : model.getLatentVariables())
       updateVariable(var, currentTime);
+  }
+  
+  public int getNCollisions()
+  {
+    return nCollisions;
   }
 
   public double getMeanEstimate(RealVariable var) 
