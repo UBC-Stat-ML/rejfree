@@ -1,20 +1,24 @@
 package rejfree.local;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.math3.distribution.MultivariateNormalDistribution;
 import org.jblas.DoubleMatrix;
+import org.mvel2.templates.TemplateRuntime;
 
+import bayonet.bugs.StanWrapper;
 import bayonet.math.JBlasUtils;
 import blang.annotations.DefineFactor;
 import blang.variables.RealVariable;
+import briefj.BriefIO;
 
 
 
 public class NormalChain
 {
-  private final NormalChainOptions options;
+  public final NormalChainOptions options;
   
   NormalChain(NormalChainOptions options)
   {
@@ -117,4 +121,16 @@ public class NormalChain
     normal = new MultivariateNormalDistribution(new DoubleMatrix(dim()).data, JBlasUtils.asDoubleArray(covarMatrix));
     normal.reseedRandomGenerator(options.random.nextLong());
   }
+  
+  private String stanModel()
+  {
+    String template = BriefIO.resourceToString("/rejfree/stanChainTemplate.txt");
+    return (String) TemplateRuntime.eval(template, this);
+  }
+  
+  public File stanProgram(File stanHome)
+  {
+    return StanWrapper.compile(stanModel(), stanHome);
+  }
+
 }

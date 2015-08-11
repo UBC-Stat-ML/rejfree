@@ -1,0 +1,31 @@
+parameters {
+
+  vector[@{options.nPairs} + 1] x;
+  
+}
+
+
+model {
+
+  matrix[2,2] localPrecision;
+  vector[2] zeroes;
+  vector[2] temp;
+  
+  localPrecision[1,1] <- @{options.diag};
+  localPrecision[2,2] <- @{options.diag};
+  localPrecision[1,2] <- @{options.offDiag};
+  localPrecision[2,1] <- @{options.offDiag};
+  
+  zeroes[1] <- 0;
+  zeroes[2] <- 0;
+
+  for (factorIndex in 1:@{options.nPairs}) {
+  
+    temp[1] <- x[factorIndex];
+    temp[2] <- x[factorIndex + 1];
+    
+    increment_log_prob(multi_normal_prec_log(temp, zeroes, localPrecision));
+  
+  }
+
+}
