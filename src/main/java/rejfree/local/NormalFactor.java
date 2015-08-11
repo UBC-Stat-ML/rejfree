@@ -11,6 +11,7 @@ import rejfree.StaticUtils;
 import rejfree.local.CollisionContext;
 import rejfree.local.CollisionFactor;
 import bayonet.math.JBlasUtils;
+import bayonet.math.NumericalUtils;
 import blang.annotations.FactorComponent;
 import blang.factors.FactorList;
 import blang.variables.RealVariable;
@@ -29,6 +30,9 @@ public class NormalFactor implements CollisionFactor
   public final FactorList<RealVariable> variables;
   
   private final DoubleMatrix precision;
+  
+  private final boolean isBin;
+  private final double p0, p1, d;
   
   /**
    * log((2pi)^{-k/2} + log(|sigma|^{-1/2}) 
@@ -61,6 +65,11 @@ public class NormalFactor implements CollisionFactor
     this.precision = precision.dup();
     double detPrecAbs = Math.abs(Decompose.lu(precision).u.diag().prod());
     this.logConstant = - (((double)precision.getRows()) / 2.0) * Math.log(2.0 * Math.PI) + 0.5 * Math.log(detPrecAbs);
+    isBin = (variables.size() == 2);
+    p0 = isBin ? precision.get(0,0) : Double.NaN;
+    p1 = isBin ? precision.get(1,1) : Double.NaN;
+    d  = isBin ? precision.get(0,1) : Double.NaN;
+    NumericalUtils.checkIsClose(precision.get(0,1), precision.get(1,0));
   }
 
   @Override
@@ -70,9 +79,27 @@ public class NormalFactor implements CollisionFactor
     return - 0.5 * dotProd(point, point) + logConstant; 
   }
   
-  private double dotProd(DoubleMatrix x1, DoubleMatrix x2)
+  private double dotProd(final DoubleMatrix x1, final DoubleMatrix x2)
   {
-    return x1.transpose().mmuli(precision).dot(x2);
+    if (isBin)
+    { // optimization of computational inner-loop bottleneck
+      final double [] 
+        array0 = x1.data,
+        array1 = x2.data;
+      return 
+          array0[0] * (array1[0] * p0 + array1[1] * d) + 
+          array0[1] * (array1[0] * d  + array1[1] * p1);
+//  // Test of correctness:
+//      double v1 = array0[0] * (array1[0] * p0 + array1[1] * d) + 
+//             array0[1] * (array1[0] * d  + array1[1] * p1);
+//      double v2 = x1.transpose().mmuli(precision).dot(x2);
+//      NumericalUtils.checkIsClose(v1, v2);
+//      if (v1 != v2)
+//        System.err.println("slight difference: " + v1 + " vs " + v2 + " delta = " + (v1 - v2));
+//      return v2;
+    }
+    else
+      return x1.transpose().mmuli(precision).dot(x2);
   }
   
   public int dim()
