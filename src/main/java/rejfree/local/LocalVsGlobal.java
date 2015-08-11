@@ -45,7 +45,7 @@ public class LocalVsGlobal implements Runnable
   {
     Mains.instrumentedRun(args, new LocalVsGlobal());
   }
-
+  
   @Test
   public void run()
   {
