@@ -365,7 +365,8 @@ public class LocalRFSampler
     
     public double getVarEstimate(RealVariable var, double currentTime)
     {
-      return sumSq.getCount(var) / currentTime;
+      final double muBar = getMeanEstimate(var, currentTime);
+      return sumSq.getCount(var) / currentTime - (muBar * muBar);
     }
     
     @Override
