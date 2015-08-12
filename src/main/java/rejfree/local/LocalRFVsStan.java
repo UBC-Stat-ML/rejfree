@@ -83,7 +83,14 @@ public class LocalRFVsStan implements Runnable
       LocalRFSampler local = new LocalRFSampler(model, rfOptions);
       local.iterate(this.options.random, Integer.MAX_VALUE, Double.POSITIVE_INFINITY, stanRunningTime);
       
-      output.printWrite("time", "seed", seed, "timeMilli", stanRunningTime, "nCollisions", local.getNCollisions());
+      output.printWrite("time", 
+          "rep", rep,
+          "seed", seed, 
+          "timeMilli", stanRunningTime, 
+          "nCollisions", local.getNCollisions(),
+          "nCollidedVariables", local.getNCollidedVariables(),
+          "nRefreshments", local.getNRefreshments(),
+          "nRefreshedVariables", local.getNRefreshedVariables());
       
       for (int d = 0; d < modelSpec.variables.size(); d++)
       {
@@ -94,7 +101,15 @@ public class LocalRFVsStan implements Runnable
         {
           double estimate = isRF ? local.getVarEstimate(variable) : stanStatistics.get("x." + (d+1)).getVariance();
           double error = Math.abs(truth - estimate);
-          output.printWrite("results", "method", isRF ? "RF" : "STAN","dim", d, "seed", seed, "absError", error, "relError", (error/truth), "truth", truth, "estimate", estimate);
+          output.printWrite("results", 
+              "method", (isRF ? "RF" : "STAN"),
+              "dim", d, 
+              "rep", rep, 
+              "seed", seed, 
+              "absError", error, 
+              "relError", (error/truth), 
+              "truth", truth, 
+              "estimate", estimate);
         }
       }
     }

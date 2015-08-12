@@ -39,6 +39,7 @@ public class LocalRFSampler
   private final EventQueue<CollisionFactor> _collisionQueue = new EventQueue<>();
   private final Map<CollisionFactor,Boolean> isCollisionMap = new LinkedHashMap<>();
   private final Map<RealVariable, TrajectoryRay> trajectories = new HashMap<>();
+  private final List<CollisionFactor> allFactors;
   
   public final ProbabilityModel model;
   private final RFSamplerOptions rfOptions;
@@ -48,6 +49,10 @@ public class LocalRFSampler
   public final List<RayProcessor> rayProcessors = new ArrayList<>();
   
   private int nCollisions = 0;
+  private int nCollidedVariables = 0;
+  
+  private int nRefreshments = 0;
+  private int nRefreshedVariables = 0;
   
   public LocalRFSampler(ProbabilityModel model, RFSamplerOptions options)
   {
@@ -59,6 +64,9 @@ public class LocalRFSampler
     mcmcOptions.nMCMCSweeps = Integer.MAX_VALUE;
     // mcmcOptions.progressCODA = true;  <-- avoid this, it makes things slow
     rayProcessors.add(momentProcessor);
+    allFactors = new ArrayList<>();
+    for (Factor f : model.linearizedFactors())
+      allFactors.add((CollisionFactor) f);
   }
   
   public void addPointProcessor(Processor processor)
@@ -101,6 +109,9 @@ public class LocalRFSampler
     final int dimensionality = variables.size();
     final DoubleMatrix uniformOnUnitBall = StaticUtils.uniformOnUnitBall(variables.size(), rand);
     
+    nRefreshments++;
+    nRefreshedVariables += variables.size();
+    
     for (int i = 0; i < dimensionality; i++)
     {
       RealVariable variable = (RealVariable) variables.get(i);
@@ -119,6 +130,38 @@ public class LocalRFSampler
     
     for (Factor factor : model.linearizedFactors())
       updateCandidateCollision(rand, (CollisionFactor) factor, refreshmentTime);
+  }
+  
+  private void localVelocityRefreshment(Random rand, double refreshmentTime)
+  {
+    // sample a factor
+    CollisionFactor f = allFactors.get(rand.nextInt(allFactors.size()));
+    Collection<?> immediateNeighborVariables = model.neighborVariables(f);
+    Collection<CollisionFactor> neighborFactors = neighborFactors(immediateNeighborVariables);
+    
+    nRefreshments++;
+    nRefreshedVariables += immediateNeighborVariables.size();
+    
+    // compute velocity squared norm
+    double sum = 0.0;
+    for (Object variable : immediateNeighborVariables)
+    {
+      double currentVComponent = trajectories.get(variable).velocity_t;
+      sum += currentVComponent * currentVComponent;
+    }
+    
+    // sample new velocity vector, rescale it
+    final DoubleMatrix newVelocity = StaticUtils.uniformOnUnitBall(immediateNeighborVariables.size(), rand);
+    newVelocity.muli(Math.sqrt(sum));
+    
+    // 2- update rays for variables in immediate neighborhood (and process)
+    int d = 0;
+    for (Object variable : immediateNeighborVariables)
+      updateTrajectory(refreshmentTime, (RealVariable) variable, newVelocity.get(d++));
+    
+    // 3- recompute the collisions for the other factors touching the variables (including the one we just popped)
+    for (CollisionFactor factor : neighborFactors)
+      updateCandidateCollision(rand, factor, refreshmentTime);
   }
 
   private void initTrajectory(double refreshmentTime, RealVariable variable, double currentVelocity)
@@ -148,30 +191,33 @@ public class LocalRFSampler
       for (RayProcessor rayProc : rayProcessors)
         rayProc.init(this);
     }
-    double nextGlobalRefreshmentTime = rfOptions.refreshRate == 0 ? Double.POSITIVE_INFINITY : Exponential.generate(rand, rfOptions.refreshRate);
+    double nextRefreshmentTime = rfOptions.refreshRate == 0 ? Double.POSITIVE_INFINITY : Exponential.generate(rand, rfOptions.refreshRate);
     mainLoop : for (int iter = 0; iter < maxNumberOfIterations; iter++)
     {
       if (watch != null && watch.elapsed(TimeUnit.MILLISECONDS) > maxTimeMilli)
         break mainLoop;
       
       double nextCollisionTime = _collisionQueue.peekTime(); 
-      double nextEventTime = Math.min(nextCollisionTime, nextGlobalRefreshmentTime);
+      double nextEventTime = Math.min(nextCollisionTime, nextRefreshmentTime);
       if (nextEventTime > maxTrajectoryLen)
       {
         currentTime = maxTrajectoryLen;
         break mainLoop;
       }
       collectSamples(currentTime, nextEventTime, rand);
-      if (nextCollisionTime < nextGlobalRefreshmentTime)
+      if (nextCollisionTime < nextRefreshmentTime)
       {
         doCollision(rand);
         currentTime = nextCollisionTime;
       }
       else
       {
-        currentTime = nextGlobalRefreshmentTime;
-        globalVelocityRefreshment(rand, nextGlobalRefreshmentTime, false);
-        nextGlobalRefreshmentTime += Exponential.generate(rand, rfOptions.refreshRate);
+        currentTime = nextRefreshmentTime;
+        if (rfOptions.useLocalRefreshment)
+          localVelocityRefreshment(rand, nextRefreshmentTime);
+        else
+          globalVelocityRefreshment(rand, nextRefreshmentTime, false);
+        nextRefreshmentTime += Exponential.generate(rand, rfOptions.refreshRate);
       }
     }
     // Ensure that the state is globally consistent at the end
@@ -200,8 +246,6 @@ public class LocalRFSampler
    */
   private <CollisionType> void doCollision(Random rand)
   {
-    nCollisions++;
-    
     // 0 - pop a collision factor
     final Entry<Double,CollisionFactor> collision = _collisionQueue.pollEvent();
     
@@ -215,13 +259,16 @@ public class LocalRFSampler
     Collection<CollisionFactor> neighborFactors = neighborFactors(immediateNeighborVariables);
     Collection<?> extendedNeighborVariables = neighborVariables(neighborFactors);
     
+    nCollisions++;
+    nCollidedVariables += immediateNeighborVariables.size();
+    
     // 1- update RealVariables in extended neighborhood
     for (Object variable : extendedNeighborVariables)
       updateVariable(variable, collisionTime);
     
     // 2- update rays for variables in immediate neighborhood (and process)
     if (isActualCollision)
-      updateTrajectories(collisionFactor, collisionTime);
+      collideTrajectories(collisionFactor, collisionTime);
     
     if (isActualCollision)
     {
@@ -294,7 +341,7 @@ public class LocalRFSampler
    * @param collisionFactor
    * @param collisionTime
    */
-  private void updateTrajectories(CollisionFactor collisionFactor, double collisionTime)
+  private void collideTrajectories(CollisionFactor collisionFactor, double collisionTime)
   {
     DoubleMatrix gradient = collisionFactor.gradient();
     DoubleMatrix oldVelocity = getVelocityMatrix(collisionFactor);
@@ -350,6 +397,21 @@ public class LocalRFSampler
   public int getNCollisions()
   {
     return nCollisions;
+  }
+  
+  public int getNCollidedVariables()
+  {
+    return nCollidedVariables;
+  }
+  
+  public int getNRefreshments()
+  {
+    return nRefreshments;
+  }
+  
+  public int getNRefreshedVariables()
+  {
+    return nRefreshedVariables;
   }
 
   public double getMeanEstimate(RealVariable var) 

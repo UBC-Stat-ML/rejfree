@@ -39,6 +39,9 @@ public class GlobalRFSampler
 
     @Option
     public boolean useInformedVelocityUpdate = false;
+
+    @Option
+    public boolean useLocalRefreshment = false;
   }
   
   private SummaryStatistics collisionToRefreshmentRatio = new SummaryStatistics();

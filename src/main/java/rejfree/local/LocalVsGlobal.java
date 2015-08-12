@@ -64,7 +64,15 @@ public class LocalVsGlobal implements Runnable
       Stopwatch watch = Stopwatch.createStarted();
       local.iterate(this.options.random, maxSteps, Double.POSITIVE_INFINITY, maxRunningTimeMilli);
       long elapsed = watch.elapsed(TimeUnit.MILLISECONDS);
-      output.printWrite("time", "seed", seed, "timeMilli", elapsed, "nCollisions", local.getNCollisions());
+      
+      output.printWrite("time", 
+          "rep", rep,
+          "seed", seed, 
+          "timeMilli", elapsed, 
+          "nCollisions", local.getNCollisions(),
+          "nCollidedVariables", local.getNCollidedVariables(),
+          "nRefreshments", local.getNRefreshments(),
+          "nRefreshedVariables", local.getNRefreshedVariables());
       
       for (int d = 0; d < modelSpec.variables.size(); d++)
       {
@@ -72,7 +80,14 @@ public class LocalVsGlobal implements Runnable
         double truth = chain.covarMatrix.get(d, d);
         double estimate = local.getVarEstimate(variable);
         double error = Math.abs(truth - estimate);
-        output.printWrite("results", "dim", d, "seed", seed, "absError", error, "relError", (error/truth), "truth", truth, "estimate", estimate);
+        output.printWrite("results", 
+            "dim", d, 
+            "rep", rep,
+            "seed", seed, 
+            "absError", error, 
+            "relError", (error/truth), 
+            "truth", truth, 
+            "estimate", estimate);
       }
     }
     
