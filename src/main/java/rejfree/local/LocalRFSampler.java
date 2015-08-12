@@ -245,8 +245,20 @@ public class LocalRFSampler
     
     double candidateCollisionTime = currentTime + collisionInfo.getLeft();
     isCollisionMap.put(factor, collisionInfo.getRight());
+    
+    if (_collisionQueue.containsTime(candidateCollisionTime))
+    {
+      System.err.println("The sampler has hit an event of probability zero: two collisions scheduled exactly at the same time.");
+      System.err.println("Because of numerical precision, this could possibly happen, but very rarely.");
+      
+      System.err.println("For internal implementation reasons, one of the collisions at time " + candidateCollisionTime + " was moved to " + (candidateCollisionTime + epsilon));
+      candidateCollisionTime += epsilon;
+    }
+    
     _collisionQueue.add(factor, candidateCollisionTime);
   }
+  
+  private static final double epsilon = 1e-10;
   
   /**
    * @param neighborFactors

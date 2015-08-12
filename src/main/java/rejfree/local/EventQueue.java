@@ -36,10 +36,15 @@ public class EventQueue<S>
   {
     if (Double.isInfinite(time))
       return;
-    if (sortedEvents.containsKey(time))
+    if (containsTime(time))
       throw new RuntimeException("EventQueue does not support two events at the same time (t=" + time + ",event=" + event + ")");
     sortedEvents.put(time, event);
     eventTimes.put(event, time);
+  }
+  
+  public final boolean containsTime(double t)
+  {
+    return sortedEvents.containsKey(t);
   }
 
   public double peekTime()
