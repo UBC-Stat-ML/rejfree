@@ -138,6 +138,7 @@ public class LocalRFSampler
     CollisionFactor f = allFactors.get(rand.nextInt(allFactors.size()));
     Collection<?> immediateNeighborVariables = model.neighborVariables(f);
     Collection<CollisionFactor> neighborFactors = neighborFactors(immediateNeighborVariables);
+    Collection<?> extendedNeighborVariables = neighborVariables(neighborFactors);
     
     nRefreshments++;
     nRefreshedVariables += immediateNeighborVariables.size();
@@ -153,6 +154,9 @@ public class LocalRFSampler
     // sample new velocity vector, rescale it
     final DoubleMatrix newVelocity = StaticUtils.uniformOnUnitBall(immediateNeighborVariables.size(), rand);
     newVelocity.muli(Math.sqrt(sum));
+    
+    for (Object variable : extendedNeighborVariables)
+      updateVariable(variable, refreshmentTime);
     
     // 2- update rays for variables in immediate neighborhood (and process)
     int d = 0;

@@ -27,11 +27,13 @@ public class TestLocalOnLongNormalChain implements Runnable
     return (guess.sub(truth)).normmax();
   }
   
-  public void testMCAvgs()
+  public void testMCAvgs(boolean useLocalRefresh)
   {
     RFSamplerOptions options = new RFSamplerOptions();
     options.refreshRate = 2.0;
     options.collectRate = 1.0;
+    options.useLocalRefreshment = useLocalRefresh;
+    
     final DoubleMatrix 
       outerSumsRF = new DoubleMatrix(chain.dim(),chain.dim());
     int [] i = new int[1];
@@ -71,11 +73,12 @@ public class TestLocalOnLongNormalChain implements Runnable
     } 
   }
   
-  public void testInvariance()
+  public void testInvariance(boolean useLocalRefresh)
   {
     RFSamplerOptions options = new RFSamplerOptions();
     options.refreshRate = 1.0;
     options.collectRate = 0.0;
+    options.useLocalRefreshment = useLocalRefresh;
 
     double fixedTime = 10;
     int nRepeats = 20000;
@@ -124,10 +127,16 @@ public class TestLocalOnLongNormalChain implements Runnable
   public void run()
   {
     org.jblas.util.Random.seed(options.random.nextLong());
+    options.nPairs = 3;
     
     chain = new NormalChain(options);
-    testMCAvgs();
-    testInvariance();
+    
+    for (boolean useLocalRefresh : new boolean[]{true,false})
+    {
+      System.out.println("useLocalRefresh = " + useLocalRefresh);
+      testMCAvgs(useLocalRefresh);
+      testInvariance(useLocalRefresh);
+    }
   }
 
   public static void main(String[] args)
