@@ -8,6 +8,7 @@ import org.junit.Test;
 import com.google.common.base.Stopwatch;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
+import rejfree.local.LocalRFSampler.MomentRayProcessor;
 import rejfree.local.NormalChain.NormalChainModel;
 import blang.ProbabilityModel;
 import blang.variables.RealVariable;
@@ -61,6 +62,7 @@ public class LocalVsGlobal implements Runnable
       NormalChainModel modelSpec = chain.new NormalChainModel(exactSample.data, isLocal);
       ProbabilityModel model = new ProbabilityModel(modelSpec);
       LocalRFSampler local = new LocalRFSampler(model, rfOptions);
+      MomentRayProcessor moments = local.addDefaultMomentRayProcessor();
       Stopwatch watch = Stopwatch.createStarted();
       local.iterate(this.options.random, maxSteps, Double.POSITIVE_INFINITY, maxRunningTimeMilli);
       long elapsed = watch.elapsed(TimeUnit.MILLISECONDS);
@@ -78,7 +80,7 @@ public class LocalVsGlobal implements Runnable
       {
         RealVariable variable = modelSpec.variables.get(d);
         double truth = chain.covarMatrix.get(d, d);
-        double estimate = local.getVarEstimate(variable);
+        double estimate = moments.getVarianceEstimate(variable);
         double error = Math.abs(truth - estimate);
         output.printWrite("results", 
             "dim", d, 

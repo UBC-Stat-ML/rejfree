@@ -12,6 +12,7 @@ import org.junit.Test;
 import com.google.common.base.Stopwatch;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
+import rejfree.local.LocalRFSampler.MomentRayProcessor;
 import rejfree.local.NormalChain.NormalChainModel;
 import binc.Command;
 import blang.ProbabilityModel;
@@ -81,6 +82,7 @@ public class LocalRFVsStan implements Runnable
       NormalChainModel modelSpec = chain.new NormalChainModel(exactSample.data, true);
       ProbabilityModel model = new ProbabilityModel(modelSpec);
       LocalRFSampler local = new LocalRFSampler(model, rfOptions);
+      MomentRayProcessor moments = local.addDefaultMomentRayProcessor();
       local.iterate(this.options.random, Integer.MAX_VALUE, Double.POSITIVE_INFINITY, stanRunningTime);
       
       output.printWrite("time", 
@@ -99,7 +101,7 @@ public class LocalRFVsStan implements Runnable
         
         for (boolean isRF : new boolean[]{true,false})
         {
-          double estimate = isRF ? local.getVarEstimate(variable) : stanStatistics.get("x." + (d+1)).getVariance();
+          double estimate = isRF ? moments.getVarianceEstimate(variable) : stanStatistics.get("x." + (d+1)).getVariance();
           double error = Math.abs(truth - estimate);
           output.printWrite("results", 
               "method", (isRF ? "RF" : "STAN"),

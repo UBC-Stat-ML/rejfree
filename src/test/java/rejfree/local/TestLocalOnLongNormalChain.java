@@ -6,6 +6,7 @@ import org.junit.Test;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFSampler;
+import rejfree.local.LocalRFSampler.MomentRayProcessor;
 import rejfree.local.NormalChain.NormalChainModel;
 import blang.ProbabilityModel;
 import blang.processing.Processor;
@@ -42,6 +43,7 @@ public class TestLocalOnLongNormalChain implements Runnable
     ProbabilityModel model = new ProbabilityModel(modelSpec);
     System.out.println(model);
     LocalRFSampler local = new LocalRFSampler(model, options);
+    MomentRayProcessor moments = local.addDefaultMomentRayProcessor();
     local.addPointProcessor(new Processor()
     {
       @Override
@@ -65,8 +67,8 @@ public class TestLocalOnLongNormalChain implements Runnable
     for (int d = 0; d < chain.dim(); d++)
     {
       RealVariable variable = modelSpec.variables.get(d);
-      double meanEstimate = local.getMeanEstimate(variable);
-      double varEstimate = local.getVarEstimate(variable);
+      double meanEstimate = moments.getMeanEstimate(variable);
+      double varEstimate = moments.getVarianceEstimate(variable);
       System.out.println(meanEstimate + "\t" + varEstimate);
       Assert.assertTrue(meanEstimate < 0.05);
       Assert.assertTrue(Math.abs(varEstimate - chain.covarMatrix.get(d,d)) < 0.05);

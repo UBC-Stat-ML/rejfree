@@ -63,7 +63,7 @@ public class LocalRFSampler
     mcmcOptions.thinningPeriod = 1;
     mcmcOptions.nMCMCSweeps = Integer.MAX_VALUE;
     // mcmcOptions.progressCODA = true;  <-- avoid this, it makes things slow
-    rayProcessors.add(momentProcessor);
+    
     allFactors = new ArrayList<>();
     for (Factor f : model.linearizedFactors())
       allFactors.add((CollisionFactor) f);
@@ -79,6 +79,13 @@ public class LocalRFSampler
     Factories<ProcessorFactory,NodeProcessorFactory> processorFactories = new Factories<ProcessorFactory,NodeProcessorFactory>(new NodeProcessorFactory());
     for (ProcessorFactory f : processorFactories.factories)
       processors.addAll(f.build(model));
+  }
+  
+  public MomentRayProcessor addDefaultMomentRayProcessor()
+  {
+    MomentRayProcessor momentProcessor = new MomentRayProcessor();
+    rayProcessors.add(momentProcessor);
+    return momentProcessor;
   }
   
   private void processRay(RealVariable var, TrajectoryRay ray, double timeTheRayEnds)
@@ -418,33 +425,22 @@ public class LocalRFSampler
     return nRefreshedVariables;
   }
 
-  public double getMeanEstimate(RealVariable var) 
-  { 
-    return momentProcessor.getMeanEstimate(var, currentTime); 
-  }
-  
-  public double getVarEstimate(RealVariable var)
+  public static class MomentRayProcessor implements RayProcessor
   {
-    return momentProcessor.getVarEstimate(var, currentTime);
-  }
-  
-  private final MomentRayProcessor momentProcessor = new MomentRayProcessor();
-  
-  private static class MomentRayProcessor implements RayProcessor
-  {
-    Counter<RealVariable> 
+    private Counter<RealVariable> 
       sum   = new Counter<RealVariable>(),
       sumSq = new Counter<RealVariable>();
+    private double currentTime = 0.0;
 
-    public double getMeanEstimate(RealVariable var, double currentTime) 
+    public double getMeanEstimate(RealVariable variable) 
     { 
-      return sum.getCount(var) / currentTime; 
+      return sum.getCount(variable) / currentTime; 
     }
     
-    public double getVarEstimate(RealVariable var, double currentTime)
+    public double getVarianceEstimate(RealVariable variable)
     {
-      final double muBar = getMeanEstimate(var, currentTime);
-      return sumSq.getCount(var) / currentTime - (muBar * muBar);
+      final double muBar = getMeanEstimate(variable);
+      return sumSq.getCount(variable) / currentTime - (muBar * muBar);
     }
     
     @Override
@@ -459,6 +455,7 @@ public class LocalRFSampler
       
       sumSq.incrementCount(var, 
           indefIntegralForVar(ray.position_t, ray.velocity_t, time - ray.t));
+      currentTime = time;
     }
     
     private double indefIntegralForMean(double x0, double v, double t)
