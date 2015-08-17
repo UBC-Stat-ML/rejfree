@@ -1,10 +1,12 @@
-package rejfree.local;
+package rejfree.processors;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.jblas.DoubleMatrix;
 
+import rejfree.local.LocalRFSampler;
+import rejfree.local.TrajectoryRay;
 import blang.variables.RealVariable;
 import briefj.Indexer;
 

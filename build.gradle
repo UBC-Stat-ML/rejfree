@@ -5,7 +5,7 @@ apply plugin: 'eclipse'
 uploadArchives {
   repositories.mavenDeployer {
     repository(url: "file:///Users/bouchard/Documents/web/public_html/maven/")
-    pom.version = "1.0.1"
+    pom.version = "1.0.2"
     pom.artifactId = "rejfree"
     pom.groupId = "ca.ubc.stat"
   }
@@ -34,7 +34,7 @@ dependencies {
   compile group: 'junit', name: 'junit', version: '4.12'
   compile group: 'ca.ubc.stat', name: 'tutorialj', version: '2.0.4'
   compile group: 'ca.ubc.stat', name: 'binc', version: '1.2.1'
-  compile group: 'ca.ubc.stat', name: 'briefj', version: '2.4.13'
+  compile group: 'ca.ubc.stat', name: 'briefj', version: '2.4.14'
   compile group: 'ca.ubc.stat', name: 'conifer', version: '1.3.6'
   compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.4'
   compile 'com.google.code.gson:gson:2.3.1'

@@ -1,12 +1,14 @@
 package rejfree.local;
 
+import java.util.List;
+
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
 import org.junit.Assert;
 import org.junit.Test;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFSampler;
-import rejfree.local.LocalRFSampler.MomentRayProcessor;
 import rejfree.local.NormalChain.NormalChainModel;
 import blang.ProbabilityModel;
 import blang.processing.Processor;
@@ -30,21 +32,21 @@ public class TestLocalOnLongNormalChain implements Runnable
   
   public void testMCAvgs(boolean useLocalRefresh)
   {
-    RFSamplerOptions options = new RFSamplerOptions();
-    options.refreshRate = 2.0;
-    options.collectRate = 1.0;
-    options.useLocalRefreshment = useLocalRefresh;
+    LocalRFRunner runner = new LocalRFRunner();
+    runner.rfOptions.refreshRate = 2.0;
+    runner.rfOptions.collectRate = 1.0;
+    runner.rfOptions.useLocalRefreshment = useLocalRefresh;
     
     final DoubleMatrix 
       outerSumsRF = new DoubleMatrix(chain.dim(),chain.dim());
     int [] i = new int[1];
     DoubleMatrix exactSample = chain.exactSample();
-    NormalChainModel modelSpec = chain.new NormalChainModel(exactSample.data, false);
-    ProbabilityModel model = new ProbabilityModel(modelSpec);
-    System.out.println(model);
-    LocalRFSampler local = new LocalRFSampler(model, options);
-    MomentRayProcessor moments = local.addDefaultMomentRayProcessor();
-    local.addPointProcessor(new Processor()
+    NormalChainModel modelSpec = chain.new NormalChainModel(exactSample.data);
+    runner.init(modelSpec);
+    System.out.println(runner.model);
+    runner.addMomentRayProcessor();
+    runner.addSaveAllRaysProcessor();
+    runner.sampler.addPointProcessor(new Processor()
     {
       @Override
       public void process(ProcessorContext context)
@@ -54,7 +56,7 @@ public class TestLocalOnLongNormalChain implements Runnable
         i[0]++;
       }
     });
-    local.iterate(this.options.random, 1000000, Double.POSITIVE_INFINITY);
+    runner.sampler.iterate(this.options.random, 1000000, Double.POSITIVE_INFINITY);
     outerSumsRF.divi(i[0]);
     System.out.println("empirical from MC avg (nSamples = " + i[0] + ")");
     System.out.println(outerSumsRF);
@@ -67,8 +69,25 @@ public class TestLocalOnLongNormalChain implements Runnable
     for (int d = 0; d < chain.dim(); d++)
     {
       RealVariable variable = modelSpec.variables.get(d);
-      double meanEstimate = moments.getMeanEstimate(variable);
-      double varEstimate = moments.getVarianceEstimate(variable);
+      double meanEstimate = runner.momentRayProcessor.getMeanEstimate(variable);
+      double varEstimate = runner.momentRayProcessor.getVarianceEstimate(variable);
+      System.out.println(meanEstimate + "\t" + varEstimate);
+      Assert.assertTrue(meanEstimate < 0.05);
+      Assert.assertTrue(Math.abs(varEstimate - chain.covarMatrix.get(d,d)) < 0.05);
+    } 
+    
+    System.out.println("from regular spaced samples:");
+    final double delta = 10.0;
+    for (int d = 0; d < chain.dim(); d++)
+    {
+      RealVariable variable = modelSpec.variables.get(d);
+      List<Double> converted = runner.saveRaysProcessor.convertToSample(variable, delta);
+      SummaryStatistics stats = new SummaryStatistics();
+      for (double cur : converted)
+        stats.addValue(cur);
+      
+      double meanEstimate = stats.getMean();
+      double varEstimate = stats.getVariance();
       System.out.println(meanEstimate + "\t" + varEstimate);
       Assert.assertTrue(meanEstimate < 0.05);
       Assert.assertTrue(Math.abs(varEstimate - chain.covarMatrix.get(d,d)) < 0.05);
@@ -81,6 +100,7 @@ public class TestLocalOnLongNormalChain implements Runnable
     options.refreshRate = 1.0;
     options.collectRate = 0.0;
     options.useLocalRefreshment = useLocalRefresh;
+
 
     double fixedTime = 10;
     int nRepeats = 20000;
@@ -95,10 +115,11 @@ public class TestLocalOnLongNormalChain implements Runnable
       outerSumsExact.addi(exactSample.mmul(exactSample.transpose()));
       
       DoubleMatrix rfSampl = null;
-      NormalChainModel modelSpec = chain.new NormalChainModel(exactSample.data, true);
+      NormalChainModel modelSpec = chain.new NormalChainModel(exactSample.data);
       ProbabilityModel model = new ProbabilityModel(modelSpec);
       LocalRFSampler local = new LocalRFSampler(model, options);
       local.iterate(this.options.random, Integer.MAX_VALUE, fixedTime);
+
       rfSampl = currentPositionToVector(modelSpec);
       outerSumsRF.addi(rfSampl.mmul(rfSampl.transpose()));
     }

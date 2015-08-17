@@ -1,5 +1,7 @@
-package rejfree.local;
+package rejfree.processors;
 
+import rejfree.local.LocalRFSampler;
+import rejfree.local.TrajectoryRay;
 import blang.variables.RealVariable;
 
 

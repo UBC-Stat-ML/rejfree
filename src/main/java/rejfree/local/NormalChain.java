@@ -40,9 +40,9 @@ public class NormalChain
     @DefineFactor
     public final List<CollisionFactor> localFactors;
     
-    public NormalChainModel(double [] init, boolean useLocal)
+    public NormalChainModel(double [] init)
     {
-      this.localFactors = useLocal ?
+      this.localFactors = options.useLocal ?
         localFactors(init) :
         globalFactor(init);  
     }

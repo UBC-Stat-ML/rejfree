@@ -22,4 +22,7 @@ public class NormalChainOptions
 
   @Option
   public boolean useAnalytic = true;
+  
+  @Option(gloss = "Use the local structure to create several sparse normal precision factors")
+  public boolean useLocal = true;
 }

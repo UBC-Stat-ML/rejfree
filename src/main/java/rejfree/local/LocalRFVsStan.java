@@ -1,7 +1,10 @@
 package rejfree.local;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -12,10 +15,9 @@ import org.junit.Test;
 import com.google.common.base.Stopwatch;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
-import rejfree.local.LocalRFSampler.MomentRayProcessor;
 import rejfree.local.NormalChain.NormalChainModel;
+import bayonet.coda.EffectiveSize;
 import binc.Command;
-import blang.ProbabilityModel;
 import blang.variables.RealVariable;
 import briefj.BriefFiles;
 import briefj.BriefIO;
@@ -45,6 +47,9 @@ public class LocalRFVsStan implements Runnable
   @Option
   public int nStanWarmUps = 1000;
   
+  @Option
+  public int essMonitoredVariable = 0;
+  
   @Option(required = true)
   public File stanHome = null;
   
@@ -70,29 +75,36 @@ public class LocalRFVsStan implements Runnable
       long seed = this.options.random.nextLong();
       DoubleMatrix exactSample = chain.exactSample();
       
+      NormalChainModel modelSpec = chain.new NormalChainModel(exactSample.data);
+      int essD = essMonitoredVariable;
+      RealVariable aVar = modelSpec.variables.get(essD);
+      
       // run stan
       File stanOutput = Results.getFileInResultFolder("currentStanOutput.csv");
       Command stanCommand = createCommand(stanProgram, exactSample, stanOutput);
       Stopwatch watch = Stopwatch.createStarted();
       Command.call(stanCommand);
       long stanRunningTime = watch.elapsed(TimeUnit.MILLISECONDS);
-      Map<String,SummaryStatistics> stanStatistics = parseStanOutput(stanOutput);
+      double stanRunningTimeSec = stanRunningTime / 1000.0;
+      Map<String,SummaryStatistics> stanStatistics = stanOutputToSummaryStatistics(stanOutput);
+      
+      double stanEss = EffectiveSize.effectiveSize(variableSamplesFromStanOutput(stanOutput, stanVarName(essD)));
+      Results.getGlobalOutputManager().printWrite("essPerSec", "method", "stan", "value", (stanEss/stanRunningTimeSec));
       
       // run ours for the same time
-      NormalChainModel modelSpec = chain.new NormalChainModel(exactSample.data, true);
-      ProbabilityModel model = new ProbabilityModel(modelSpec);
-      LocalRFSampler local = new LocalRFSampler(model, rfOptions);
-      MomentRayProcessor moments = local.addDefaultMomentRayProcessor();
-      local.iterate(this.options.random, Integer.MAX_VALUE, Double.POSITIVE_INFINITY, stanRunningTime);
+      LocalRFRunner runner = new LocalRFRunner();
+      runner.rfOptions = rfOptions;
+      runner.init(modelSpec);
+      runner.addMomentRayProcessor();
+      runner.addSaveRaysProcessor(Collections.singleton(aVar));
       
-      output.printWrite("time", 
-          "rep", rep,
-          "seed", seed, 
-          "timeMilli", stanRunningTime, 
-          "nCollisions", local.getNCollisions(),
-          "nCollidedVariables", local.getNCollidedVariables(),
-          "nRefreshments", local.getNRefreshments(),
-          "nRefreshedVariables", local.getNRefreshedVariables());
+      runner.maxSteps = Integer.MAX_VALUE;
+      runner.maxTrajectoryLength = Double.POSITIVE_INFINITY;
+      runner.maxRunningTimeMilli = stanRunningTime;
+      runner.run();
+      
+      double rfESS = EffectiveSize.effectiveSize(runner.saveRaysProcessor.convertToSample(aVar, 4.0));
+      Results.getGlobalOutputManager().printWrite("essPerSec", "method", "RF", "value", (rfESS/stanRunningTimeSec));
       
       for (int d = 0; d < modelSpec.variables.size(); d++)
       {
@@ -101,7 +113,7 @@ public class LocalRFVsStan implements Runnable
         
         for (boolean isRF : new boolean[]{true,false})
         {
-          double estimate = isRF ? moments.getVarianceEstimate(variable) : stanStatistics.get("x." + (d+1)).getVariance();
+          double estimate = isRF ? runner.momentRayProcessor.getVarianceEstimate(variable) : stanStatistics.get(stanVarName(d)).getVariance();
           double error = Math.abs(truth - estimate);
           output.printWrite("results", 
               "method", (isRF ? "RF" : "STAN"),
@@ -118,13 +130,26 @@ public class LocalRFVsStan implements Runnable
     
     output.close();
   }
+  
+  private String stanVarName(int d)
+  {
+    return "x." + (d+1);
+  }
 
-  private Map<String,SummaryStatistics> parseStanOutput(File stanOutput)
+  private Map<String,SummaryStatistics> stanOutputToSummaryStatistics(File stanOutput)
   {
     Map<String,SummaryStatistics> result = new HashMap<>();
     for (Map<String,String> sample : BriefIO.readLines(stanOutput).indexCSV('#'))
       for (String key : sample.keySet())
         BriefMaps.getOrPut(result, key, new SummaryStatistics()).addValue(Double.parseDouble(sample.get(key)));
+    return result;
+  }
+  
+  private List<Double> variableSamplesFromStanOutput(File stanOutput, String varName)
+  {
+    List<Double> result = new ArrayList<Double>();
+    for (Map<String,String> sample : BriefIO.readLines(stanOutput).indexCSV('#'))
+      result.add(Double.parseDouble(sample.get(varName)));
     return result;
   }
 
