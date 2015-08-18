@@ -14,7 +14,7 @@ import org.junit.Test;
 
 import com.google.common.base.Stopwatch;
 
-import rejfree.GlobalRFSampler.RFSamplerOptions;
+import rejfree.global.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFRunner;
 import rejfree.models.normal.NormalChain.NormalChainModel;
 import bayonet.coda.EffectiveSize;

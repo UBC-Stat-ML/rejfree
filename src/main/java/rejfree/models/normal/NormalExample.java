@@ -1,4 +1,4 @@
-package rejfree;
+package rejfree.models.normal;
 
 import java.io.File;
 import java.util.List;
@@ -7,7 +7,9 @@ import java.util.Random;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
 
-import rejfree.GlobalRFSampler.RFSamplerOptions;
+import rejfree.PlotTrajectory;
+import rejfree.global.GlobalRFSampler;
+import rejfree.global.GlobalRFSampler.RFSamplerOptions;
 
 import com.google.common.collect.Lists;
 

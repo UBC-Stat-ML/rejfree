@@ -1,4 +1,4 @@
-package rejfree;
+package rejfree.global;
 
 
 import org.apache.commons.math3.analysis.UnivariateFunction;

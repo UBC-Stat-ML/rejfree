@@ -5,6 +5,7 @@ import org.jblas.DoubleMatrix;
 import org.junit.Assert;
 import org.junit.Test;
 
+import rejfree.models.normal.NormalEnergy;
 import bayonet.math.NumericalUtils;
 
 

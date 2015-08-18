@@ -1,4 +1,4 @@
-package rejfree;
+package rejfree.global;
 
 import java.util.List;
 import java.util.Random;
@@ -6,13 +6,14 @@ import java.util.Random;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
 
+import rejfree.StaticUtils;
+
 import com.google.common.collect.Lists;
 
 import bayonet.distributions.Exponential;
 import bayonet.opt.DifferentiableFunction;
 import bayonet.opt.LBFGSMinimizer;
 import briefj.opt.Option;
-
 import static rejfree.StaticUtils.*;
 
 public class GlobalRFSampler

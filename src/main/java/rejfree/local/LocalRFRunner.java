@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
 
-import rejfree.GlobalRFSampler.RFSamplerOptions;
+import rejfree.global.GlobalRFSampler.RFSamplerOptions;
 import rejfree.processors.MomentRayProcessor;
 import rejfree.processors.SaveRaysProcessor;
 import rejfree.processors.SaveSamplesProcessor;

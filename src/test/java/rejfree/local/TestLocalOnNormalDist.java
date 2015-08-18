@@ -11,7 +11,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import rejfree.GlobalRFSampler.RFSamplerOptions;
+import rejfree.global.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFSampler;
 import rejfree.models.normal.NumericNormalFactor;
 import bayonet.math.JBlasUtils;

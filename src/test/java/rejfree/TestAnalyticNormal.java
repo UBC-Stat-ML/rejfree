@@ -11,8 +11,10 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import rejfree.GlobalRFSampler.RFSamplerOptions;
+import rejfree.global.GlobalRFSampler;
+import rejfree.global.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFSampler;
+import rejfree.models.normal.NormalEnergy;
 import rejfree.models.normal.NumericNormalFactor;
 import rejfree.processors.RecordFullTrajectory;
 import bayonet.math.NumericalUtils;

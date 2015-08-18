@@ -1,4 +1,4 @@
-package rejfree;
+package rejfree.models.normal;
 
 import org.jblas.Decompose;
 import org.jblas.DoubleMatrix;

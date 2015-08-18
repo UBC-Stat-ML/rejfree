@@ -6,8 +6,8 @@ import java.util.Random;
 
 import org.jblas.DoubleMatrix;
 
-import rejfree.GlobalRFSampler;
-import rejfree.GlobalRFSampler.RFSamplerOptions;
+import rejfree.global.GlobalRFSampler;
+import rejfree.global.GlobalRFSampler.RFSamplerOptions;
 import bayonet.distributions.Normal.MeanVarianceParameterization;
 import blang.factors.IIDRealVectorGenerativeFactor;
 import blang.mcmc.ConnectedFactor;

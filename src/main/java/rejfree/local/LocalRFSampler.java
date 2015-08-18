@@ -18,7 +18,7 @@ import org.jblas.DoubleMatrix;
 import com.google.common.base.Stopwatch;
 
 import rejfree.StaticUtils;
-import rejfree.GlobalRFSampler.RFSamplerOptions;
+import rejfree.global.GlobalRFSampler.RFSamplerOptions;
 import rejfree.processors.MomentRayProcessor;
 import rejfree.processors.RayProcessor;
 import bayonet.distributions.Exponential;

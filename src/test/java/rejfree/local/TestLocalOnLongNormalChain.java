@@ -7,7 +7,7 @@ import org.jblas.DoubleMatrix;
 import org.junit.Assert;
 import org.junit.Test;
 
-import rejfree.GlobalRFSampler.RFSamplerOptions;
+import rejfree.global.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFSampler;
 import rejfree.models.normal.NormalChain;
 import rejfree.models.normal.NormalChainOptions;
