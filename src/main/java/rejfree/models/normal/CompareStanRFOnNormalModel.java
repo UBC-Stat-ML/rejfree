@@ -31,7 +31,7 @@ import briefj.run.Results;
 
 
 
-public class LocalRFVsStan implements Runnable
+public class CompareStanRFOnNormalModel implements Runnable
 {
   @OptionSet(name = "modelOptions")
   public NormalChainOptions options = new NormalChainOptions();
@@ -58,7 +58,7 @@ public class LocalRFVsStan implements Runnable
 
   public static void main(String[] args)
   {
-    Mains.instrumentedRun(args, new LocalRFVsStan());
+    Mains.instrumentedRun(args, new CompareStanRFOnNormalModel());
   }
 
   @Test

@@ -14,7 +14,7 @@ import briefj.run.Results;
 
 
 
-public class LocalVsGlobal implements Runnable
+public class RunRFOnNormalModel implements Runnable
 {
   @OptionSet(name = "modelOptions")
   public NormalChainOptions options = new NormalChainOptions();
@@ -29,7 +29,7 @@ public class LocalVsGlobal implements Runnable
 
   public static void main(String[] args)
   {
-    Mains.instrumentedRun(args, new LocalVsGlobal());
+    Mains.instrumentedRun(args, new RunRFOnNormalModel());
   }
   
   @Test
