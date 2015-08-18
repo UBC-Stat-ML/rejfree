@@ -21,7 +21,6 @@ import rejfree.StaticUtils;
 import rejfree.GlobalRFSampler.RFSamplerOptions;
 import rejfree.processors.MomentRayProcessor;
 import rejfree.processors.RayProcessor;
-import rejfree.processors.RecordFullTrajectory;
 import bayonet.distributions.Exponential;
 import blang.ProbabilityModel;
 import blang.MCMCFactory.Factories;
@@ -32,7 +31,6 @@ import blang.processing.Processor;
 import blang.processing.ProcessorContext;
 import blang.processing.ProcessorFactory;
 import blang.variables.RealVariable;
-import briefj.Indexer;
 
 
 
@@ -99,15 +97,6 @@ public class LocalRFSampler
   {
     for (RayProcessor processor : rayProcessors)
       processor.processRay(var, ray, timeTheRayEnds, this);
-  }
-  
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  public RecordFullTrajectory addRecordFullTrajectoryProcessor()
-  {
-    Indexer variablesIndexer = new Indexer<>(model.getLatentVariables());
-    RecordFullTrajectory processor = new RecordFullTrajectory(variablesIndexer);
-    rayProcessors.add(processor);
-    return processor;
   }
   
   private int pointCollectIter = 0;

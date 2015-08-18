@@ -11,7 +11,12 @@ import blang.variables.RealVariable;
 import briefj.Indexer;
 
 
-
+/**
+ * 
+ * @deprecated Use SaveRaysProcessor for more control and effiency.
+ * @author Alexandre Bouchard (alexandre.bouchard@gmail.com)
+ *
+ */
 public class RecordFullTrajectory implements RayProcessor
 {
   public final List<DoubleMatrix> samples = new ArrayList<>();

@@ -13,6 +13,7 @@ import com.google.common.collect.Lists;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFSampler;
+import rejfree.models.normal.NumericNormalFactor;
 import bayonet.math.JBlasUtils;
 import blang.ProbabilityModel;
 import blang.annotations.DefineFactor;

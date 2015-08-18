@@ -1,4 +1,4 @@
-package rejfree.phylo;
+package rejfree.models.phylo;
 
 import java.io.File;
 import java.util.List;

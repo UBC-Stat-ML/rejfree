@@ -11,7 +11,7 @@ import java.util.stream.IntStream;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFSampler;
-import rejfree.local.NormalFactor;
+import rejfree.models.normal.NormalFactor;
 import blang.MCMCAlgorithm;
 import blang.MCMCFactory;
 import blang.ProbabilityModel;

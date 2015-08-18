@@ -1,4 +1,4 @@
-package rejfree.local;
+package rejfree.models.normal;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -8,6 +8,7 @@ import org.apache.commons.math3.distribution.MultivariateNormalDistribution;
 import org.jblas.DoubleMatrix;
 import org.mvel2.templates.TemplateRuntime;
 
+import rejfree.local.CollisionFactor;
 import bayonet.bugs.StanWrapper;
 import bayonet.math.JBlasUtils;
 import blang.annotations.DefineFactor;
@@ -20,7 +21,7 @@ public class NormalChain
 {
   public final NormalChainOptions options;
   
-  NormalChain(NormalChainOptions options)
+  public NormalChain(NormalChainOptions options)
   {
     this.options = options;
     buildPrecisionMatrices();
@@ -29,13 +30,13 @@ public class NormalChain
   public int dim() { return options.nPairs + 1; }
   
   private DoubleMatrix fullPrecision;
-  DoubleMatrix covarMatrix;
+  public DoubleMatrix covarMatrix;
   private List<DoubleMatrix> pairPrecisions;
   private MultivariateNormalDistribution normal;
   
   public class NormalChainModel
   {
-    List<RealVariable> variables = new ArrayList<>();
+    public List<RealVariable> variables = new ArrayList<>();
     
     @DefineFactor
     public final List<CollisionFactor> localFactors;

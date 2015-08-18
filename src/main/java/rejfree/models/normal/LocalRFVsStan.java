@@ -1,4 +1,4 @@
-package rejfree.local;
+package rejfree.models.normal;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -15,7 +15,8 @@ import org.junit.Test;
 import com.google.common.base.Stopwatch;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
-import rejfree.local.NormalChain.NormalChainModel;
+import rejfree.local.LocalRFRunner;
+import rejfree.models.normal.NormalChain.NormalChainModel;
 import bayonet.coda.EffectiveSize;
 import binc.Command;
 import blang.variables.RealVariable;

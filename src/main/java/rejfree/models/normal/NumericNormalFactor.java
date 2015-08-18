@@ -1,4 +1,4 @@
-package rejfree.local;
+package rejfree.models.normal;
 
 import java.util.List;
 

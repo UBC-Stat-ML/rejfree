@@ -5,7 +5,9 @@ import java.util.Collections;
 import org.jblas.DoubleMatrix;
 import org.junit.Test;
 
-import rejfree.local.NormalChain.NormalChainModel;
+import rejfree.models.normal.NormalChain;
+import rejfree.models.normal.NormalChainOptions;
+import rejfree.models.normal.NormalChain.NormalChainModel;
 import bayonet.coda.EffectiveSize;
 import blang.variables.RealVariable;
 import briefj.opt.OptionSet;
@@ -15,7 +17,7 @@ import briefj.run.Results;
 
 
 
-public class TestESSRobustness implements Runnable
+public class CheckESSRobustness implements Runnable
 {
   @OptionSet(name = "modelOptions")
   public NormalChainOptions options = new NormalChainOptions();
@@ -25,7 +27,7 @@ public class TestESSRobustness implements Runnable
   
   public static void main(String[] args)
   {
-    Mains.instrumentedRun(args, new TestESSRobustness());
+    Mains.instrumentedRun(args, new CheckESSRobustness());
   }
   
   @Test

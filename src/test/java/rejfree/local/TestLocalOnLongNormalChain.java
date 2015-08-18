@@ -9,7 +9,9 @@ import org.junit.Test;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFSampler;
-import rejfree.local.NormalChain.NormalChainModel;
+import rejfree.models.normal.NormalChain;
+import rejfree.models.normal.NormalChainOptions;
+import rejfree.models.normal.NormalChain.NormalChainModel;
 import blang.ProbabilityModel;
 import blang.processing.Processor;
 import blang.processing.ProcessorContext;

@@ -13,13 +13,14 @@ import com.google.common.collect.Lists;
 
 import rejfree.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFSampler;
-import rejfree.local.NumericNormalFactor;
+import rejfree.models.normal.NumericNormalFactor;
 import rejfree.processors.RecordFullTrajectory;
 import bayonet.math.NumericalUtils;
 import bayonet.opt.DifferentiableFunction;
 import blang.ProbabilityModel;
 import blang.annotations.DefineFactor;
 import blang.variables.RealVariable;
+import briefj.Indexer;
 
 
 /**
@@ -29,6 +30,7 @@ import blang.variables.RealVariable;
  * @author Alexandre Bouchard (alexandre.bouchard@gmail.com)
  *
  */
+@SuppressWarnings("deprecation")
 public class TestAnalyticNormal
 {
   /**
@@ -80,7 +82,13 @@ public class TestAnalyticNormal
     modelSpec.v2.setValue(0.2);
     ProbabilityModel model = new ProbabilityModel(modelSpec);
     LocalRFSampler sampler = new LocalRFSampler(model , options);
-    RecordFullTrajectory rayProcessor = sampler.addRecordFullTrajectoryProcessor();
+    
+    @SuppressWarnings("rawtypes")
+    Indexer variablesIndexer = new Indexer<>(model.getLatentVariables());
+    @SuppressWarnings("unchecked")
+    RecordFullTrajectory rayProcessor = new RecordFullTrajectory(variablesIndexer);
+    sampler.addRayProcessor(rayProcessor);
+    
     sampler.iterate(rand, nIters);
     checkAgainsAnalytic(rayProcessor.samples);
   }

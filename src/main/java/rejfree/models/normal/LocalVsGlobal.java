@@ -1,9 +1,10 @@
-package rejfree.local;
+package rejfree.models.normal;
 
 import org.jblas.DoubleMatrix;
 import org.junit.Test;
 
-import rejfree.local.NormalChain.NormalChainModel;
+import rejfree.local.LocalRFRunner;
+import rejfree.models.normal.NormalChain.NormalChainModel;
 import blang.variables.RealVariable;
 import briefj.OutputManager;
 import briefj.opt.Option;
