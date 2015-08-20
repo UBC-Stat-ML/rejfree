@@ -22,20 +22,36 @@ import briefj.run.Results;
 
 public class LocalRFRunner
 {
-  @Option
-  public long maxRunningTimeMilli = Long.MAX_VALUE;
+  @OptionSet(name = "runnerOptions")
+  public final LocalRFRunnerOption options;
   
-  @Option
-  public int maxSteps = 1000;
+  public LocalRFRunner(LocalRFRunnerOption options)
+  {
+    this.options = options;
+  }
   
-  @Option
-  public double maxTrajectoryLength = Double.POSITIVE_INFINITY;
+  public LocalRFRunner()
+  {
+    this.options = new LocalRFRunnerOption();
+  }
   
-  @Option
-  public Random samplingRandom = new Random(1);
-  
-  @OptionSet(name = "rfOptions")
-  public RFSamplerOptions rfOptions = new RFSamplerOptions();
+  public static class LocalRFRunnerOption
+  {
+    @Option
+    public long maxRunningTimeMilli = Long.MAX_VALUE;
+    
+    @Option
+    public int maxSteps = 1000;
+    
+    @Option
+    public double maxTrajectoryLength = Double.POSITIVE_INFINITY;
+    
+    @Option
+    public Random samplingRandom = new Random(1);
+    
+    @OptionSet(name = "rfOptions")
+    public RFSamplerOptions rfOptions = new RFSamplerOptions();
+  }
   
   public ProbabilityModel model;
   public LocalRFSampler sampler;
@@ -51,7 +67,7 @@ public class LocalRFRunner
     if (isInit())
       throw new RuntimeException("Model already initialized.");
     model = new ProbabilityModel(modelSpec);
-    sampler = new LocalRFSampler(model, rfOptions);
+    sampler = new LocalRFSampler(model, options.rfOptions);
   }
   
   private boolean isInit()
@@ -69,7 +85,7 @@ public class LocalRFRunner
   {
     checkInit();
     if (momentRayProcessor != null)
-      throw new RuntimeException("Alreayd added");
+      throw new RuntimeException("Already added");
     momentRayProcessor = new MomentRayProcessor();
     sampler.addRayProcessor(momentRayProcessor);
   }
@@ -78,7 +94,7 @@ public class LocalRFRunner
   {
     checkInit();
     if (saveRaysProcessor != null)
-      throw new RuntimeException("Alreayd added");
+      throw new RuntimeException("Already added");
     saveRaysProcessor = new SaveRaysProcessor(variables);
     sampler.addRayProcessor(saveRaysProcessor);
   }
@@ -94,7 +110,7 @@ public class LocalRFRunner
   {
     checkInit();
     if (saveSamplesProcessor != null)
-      throw new RuntimeException("Alreayd added");
+      throw new RuntimeException("Already added");
     saveSamplesProcessor = new SaveSamplesProcessor(variables);
     sampler.addPointProcessor(saveSamplesProcessor);
   }
@@ -104,7 +120,7 @@ public class LocalRFRunner
     checkInit();
     
     Stopwatch watch = Stopwatch.createStarted();
-    sampler.iterate(samplingRandom, maxSteps, maxTrajectoryLength, maxRunningTimeMilli);
+    sampler.iterate(options.samplingRandom, options.maxSteps, options.maxTrajectoryLength, options.maxRunningTimeMilli);
     long elapsed = watch.elapsed(TimeUnit.MILLISECONDS);
     
     output.printWrite("general-sampler-diagnostic", 

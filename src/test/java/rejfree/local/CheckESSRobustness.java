@@ -46,7 +46,7 @@ public class CheckESSRobustness implements Runnable
     runner.run();
     
     double sampledESS = EffectiveSize.effectiveSize(runner.saveSamplesProcessor.samples.get(0));
-    Results.getGlobalOutputManager().printWrite("ess", "sampled", true, "delta", (1.0/runner.rfOptions.collectRate), "ess", sampledESS);
+    Results.getGlobalOutputManager().printWrite("ess", "sampled", true, "delta", (1.0/runner.options.rfOptions.collectRate), "ess", sampledESS);
     
     for (double delta = 1024; delta > 0.25; delta /= 2)
     {

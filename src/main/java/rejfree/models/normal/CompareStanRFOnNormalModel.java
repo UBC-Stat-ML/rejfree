@@ -94,14 +94,14 @@ public class CompareStanRFOnNormalModel implements Runnable
       
       // run ours for the same time
       LocalRFRunner runner = new LocalRFRunner();
-      runner.rfOptions = rfOptions;
+      runner.options.rfOptions = rfOptions;
       runner.init(modelSpec);
       runner.addMomentRayProcessor();
       runner.addSaveRaysProcessor(Collections.singleton(aVar));
       
-      runner.maxSteps = Integer.MAX_VALUE;
-      runner.maxTrajectoryLength = Double.POSITIVE_INFINITY;
-      runner.maxRunningTimeMilli = stanRunningTime;
+      runner.options.maxSteps = Integer.MAX_VALUE;
+      runner.options.maxTrajectoryLength = Double.POSITIVE_INFINITY;
+      runner.options.maxRunningTimeMilli = stanRunningTime;
       runner.run();
       
       double rfESS = EffectiveSize.effectiveSize(runner.saveRaysProcessor.convertToSample(aVar, 4.0));

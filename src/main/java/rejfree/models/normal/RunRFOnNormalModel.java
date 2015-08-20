@@ -4,7 +4,9 @@ import org.jblas.DoubleMatrix;
 import org.junit.Test;
 
 import rejfree.local.LocalRFRunner;
+import rejfree.local.LocalRFRunner.LocalRFRunnerOption;
 import rejfree.models.normal.NormalChain.NormalChainModel;
+import bayonet.coda.EffectiveSize;
 import blang.variables.RealVariable;
 import briefj.OutputManager;
 import briefj.opt.Option;
@@ -20,7 +22,7 @@ public class RunRFOnNormalModel implements Runnable
   public NormalChainOptions options = new NormalChainOptions();
   
   @OptionSet(name = "rfRunner")
-  public LocalRFRunner runner = new LocalRFRunner();
+  public LocalRFRunnerOption runnerOptions = new LocalRFRunnerOption();
   
   @Option
   public int nRepeats = 100;
@@ -42,12 +44,18 @@ public class RunRFOnNormalModel implements Runnable
     
     for (int rep = 0; rep < nRepeats; rep++)
     {
+      LocalRFRunner runner = new LocalRFRunner(runnerOptions);
       long seed = this.options.random.nextLong();
       DoubleMatrix exactSample = chain.exactSample();
       NormalChainModel modelSpec = chain.new NormalChainModel(exactSample.data);
       runner.init(modelSpec);
       runner.addMomentRayProcessor();
+      runner.addSaveAllRaysProcessor();
       runner.run();
+      
+      RealVariable aVar = modelSpec.variables.get(3);
+      double rfESS = EffectiveSize.effectiveSize(runner.saveRaysProcessor.convertToSample(aVar, 4.0));
+      Results.getGlobalOutputManager().printWrite("essPerSec", "value", rfESS);
       
       for (int d = 0; d < modelSpec.variables.size(); d++)
       {

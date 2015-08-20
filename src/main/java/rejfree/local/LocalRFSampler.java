@@ -106,11 +106,23 @@ public class LocalRFSampler
       p.process(new ProcessorContext(pointCollectIter++, model, mcmcOptions));
   }
   
+  private DoubleMatrix currentVelocity(List<Object> variables)
+  {
+    final int dimensionality = variables.size();
+    DoubleMatrix result = new DoubleMatrix(dimensionality);
+    for (int d = 0; d < dimensionality; d++)
+      result.put(d, trajectories.get(variables.get(d)).velocity_t);
+    return result;
+  }
+  
   private void globalVelocityRefreshment(Random rand, double refreshmentTime, boolean initializing)
   {
     final List<Object> variables = model.getLatentVariables();
     final int dimensionality = variables.size();
-    final DoubleMatrix uniformOnUnitBall = StaticUtils.uniformOnUnitBall(variables.size(), rand);
+    final DoubleMatrix uniformOnUnitBall = 
+        rfOptions.usePartialRefreshment && !initializing 
+          ? StaticUtils.partialRefreshmentBetaAngle(currentVelocity(variables), rfOptions.alpha, rfOptions.beta, rand)
+          : StaticUtils.uniformOnUnitBall(variables.size(), rand);
     
     nRefreshments++;
     nRefreshedVariables += variables.size();

@@ -43,6 +43,15 @@ public class GlobalRFSampler
 
     @Option
     public boolean useLocalRefreshment = false;
+
+    @Option
+    public boolean usePartialRefreshment = false;
+
+    @Option
+    public double alpha = 1.0;
+    
+    @Option
+    public double beta = 4.0;
   }
   
   private SummaryStatistics collisionToRefreshmentRatio = new SummaryStatistics();

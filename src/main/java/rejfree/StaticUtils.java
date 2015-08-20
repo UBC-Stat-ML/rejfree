@@ -4,6 +4,7 @@ import java.util.Random;
 
 import org.jblas.DoubleMatrix;
 
+import bayonet.distributions.Beta;
 import bayonet.math.NumericalUtils;
 
 
@@ -33,6 +34,44 @@ public class StaticUtils
       random.data[i] = rand.nextGaussian();
     double norm = random.norm2();
     return random.muli(1.0/norm);
+  }
+  
+  public static DoubleMatrix partialRefreshment(DoubleMatrix currentVelocity, double angleRad, Random rand)
+  {
+    DoubleMatrix delta = uniformOnUnitBall(currentVelocity.length, rand);
+    DoubleMatrix p = project(delta, currentVelocity);
+    p.divi(p.norm2());
+    double L = Math.tan(angleRad);
+    p.muli(L);
+    DoubleMatrix result = currentVelocity.add(p);
+    result.divi(result.norm2());
+    return result;
+  }
+  
+  public static DoubleMatrix partialRefreshmentBetaAngle(DoubleMatrix currentVelocity, double alpha, double beta, Random rand)
+  {
+    double angle = Beta.generate(rand, alpha, beta) * 2 * Math.PI;
+    return partialRefreshment(currentVelocity, angle, rand);
+  }
+  
+  private static DoubleMatrix project(DoubleMatrix toProject, DoubleMatrix unitTangentialVector)
+  {
+    return toProject.sub(unitTangentialVector.mul(toProject.dot(unitTangentialVector)));
+  }
+  
+  public static void main(String [] args)
+  {
+    Random rand = new Random(1);
+    for (int i = 0; i < 100; i++)
+    {
+      DoubleMatrix v1 = uniformOnUnitBall(2, rand);
+      DoubleMatrix v2 = partialRefreshment(v1, 0.1, rand);
+      System.out.println(v1);
+      System.out.println(v2);
+      System.out.println(v1.dot(v2));
+      System.out.println(Math.acos(v1.dot(v2)));
+      System.out.println("---");
+    }
   }
 
   /**

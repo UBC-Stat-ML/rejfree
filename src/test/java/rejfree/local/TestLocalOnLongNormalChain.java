@@ -32,12 +32,14 @@ public class TestLocalOnLongNormalChain implements Runnable
     return (guess.sub(truth)).normmax();
   }
   
-  public void testMCAvgs(boolean useLocalRefresh)
+  public void testMCAvgs(boolean useLocalRefresh, boolean usePartialRefresh)
   {
+    System.out.println("Checking MC averages");
     LocalRFRunner runner = new LocalRFRunner();
-    runner.rfOptions.refreshRate = 2.0;
-    runner.rfOptions.collectRate = 1.0;
-    runner.rfOptions.useLocalRefreshment = useLocalRefresh;
+    runner.options.rfOptions.refreshRate = 2.0;
+    runner.options.rfOptions.collectRate = 1.0;
+    runner.options.rfOptions.useLocalRefreshment = useLocalRefresh;
+    runner.options.rfOptions.usePartialRefreshment = usePartialRefresh;
     
     final DoubleMatrix 
       outerSumsRF = new DoubleMatrix(chain.dim(),chain.dim());
@@ -45,7 +47,6 @@ public class TestLocalOnLongNormalChain implements Runnable
     DoubleMatrix exactSample = chain.exactSample();
     NormalChainModel modelSpec = chain.new NormalChainModel(exactSample.data);
     runner.init(modelSpec);
-    System.out.println(runner.model);
     runner.addMomentRayProcessor();
     runner.addSaveAllRaysProcessor();
     runner.sampler.addPointProcessor(new Processor()
@@ -58,7 +59,7 @@ public class TestLocalOnLongNormalChain implements Runnable
         i[0]++;
       }
     });
-    runner.sampler.iterate(this.options.random, 1000000, Double.POSITIVE_INFINITY);
+    runner.sampler.iterate(this.options.random, 1_000_000, Double.POSITIVE_INFINITY);
     outerSumsRF.divi(i[0]);
     System.out.println("empirical from MC avg (nSamples = " + i[0] + ")");
     System.out.println(outerSumsRF);
@@ -79,7 +80,7 @@ public class TestLocalOnLongNormalChain implements Runnable
     } 
     
     System.out.println("from regular spaced samples:");
-    final double delta = 10.0;
+    final double delta = 1.0;
     for (int d = 0; d < chain.dim(); d++)
     {
       RealVariable variable = modelSpec.variables.get(d);
@@ -96,13 +97,14 @@ public class TestLocalOnLongNormalChain implements Runnable
     } 
   }
   
-  public void testInvariance(boolean useLocalRefresh)
+  public void testInvariance(boolean useLocalRefresh, boolean usePartial)
   {
+    System.out.println("Checking invariance");
     RFSamplerOptions options = new RFSamplerOptions();
     options.refreshRate = 1.0;
     options.collectRate = 0.0;
     options.useLocalRefreshment = useLocalRefresh;
-
+    options.usePartialRefreshment = usePartial;
 
     double fixedTime = 10;
     int nRepeats = 20000;
@@ -156,12 +158,17 @@ public class TestLocalOnLongNormalChain implements Runnable
     
     chain = new NormalChain(options);
     
-    for (boolean useLocalRefresh : new boolean[]{true,false})
-    {
-      System.out.println("useLocalRefresh = " + useLocalRefresh);
-      testMCAvgs(useLocalRefresh);
-      testInvariance(useLocalRefresh);
-    }
+    System.out.println("true covariance matrix:\n" + chain.covarMatrix);
+
+    for (boolean usePartialRefresh : new boolean[]{true,false})
+      for (boolean useLocalRefresh : new boolean[]{true,false})
+      {
+        System.out.println("=====");
+        System.out.println("useLocalRefresh = " + useLocalRefresh);
+        System.out.println("usePartialRefresh = " + usePartialRefresh);
+        testMCAvgs(useLocalRefresh, usePartialRefresh);
+        testInvariance(useLocalRefresh, usePartialRefresh);
+      }
   }
 
   public static void main(String[] args)
