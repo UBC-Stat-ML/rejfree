@@ -1,6 +1,5 @@
 package rejfree.models.normal;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,7 +8,6 @@ import org.jblas.DoubleMatrix;
 import org.mvel2.templates.TemplateRuntime;
 
 import rejfree.local.CollisionFactor;
-import bayonet.bugs.StanWrapper;
 import bayonet.math.JBlasUtils;
 import blang.annotations.DefineFactor;
 import blang.variables.RealVariable;
@@ -123,15 +121,9 @@ public class NormalChain
     normal.reseedRandomGenerator(options.random.nextLong());
   }
   
-  private String stanModel()
+  public String stanModel()
   {
     String template = BriefIO.resourceToString("/rejfree/stanChainTemplate.txt");
     return (String) TemplateRuntime.eval(template, this);
   }
-  
-  public File stanProgram(File stanHome)
-  {
-    return StanWrapper.compile(stanModel(), stanHome);
-  }
-
 }

@@ -21,7 +21,7 @@ public class SaveRaysProcessor implements RayProcessor
   
   public SaveRaysProcessor(Collection<RealVariable> variables)
   {
-    if (variables.size() == 1)
+    if (variables.size() == 1) // slight efficiency speed-up
       this.samples = Collections.singletonMap(BriefCollections.pick(variables), new ArrayList<>());
     else
     {
