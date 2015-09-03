@@ -37,7 +37,7 @@ public class CompareStanRFOnNormalModel implements Runnable
   public int nRepeats = 100;
   
   @Option(gloss = "Which variables to monitor (1 for monitoring all of them)")
-  public int variableMonitorInterval = 1;
+  public int variableMonitorInterval = 10;
   
   private NormalChain chain;
 
