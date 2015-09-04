@@ -124,13 +124,13 @@ public class CompareStanRFOnNormalModel implements Runnable
     for (double cur : samples)
     {
       stat.addValue(cur);
-      if (counter > 0 && counter++ % interval == 0)
+      if (counter > 0 && counter % interval == 0)
         Results.getGlobalOutputManager().printWrite("partialSums",
             "method", methodName,
             "dim", dim,
             "percent", percent++,
             "value", (stat.getVariance() - truth) /truth);
-          
+      counter++;
     }
   }
 
