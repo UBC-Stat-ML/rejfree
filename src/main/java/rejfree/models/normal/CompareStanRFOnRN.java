@@ -84,7 +84,7 @@ public class CompareStanRFOnRN implements Runnable
       
       runner.options.maxSteps = Integer.MAX_VALUE;
       runner.options.maxTrajectoryLength = Double.POSITIVE_INFINITY;
-      runner.options.maxRunningTimeMilli = (long) ((double) stanExec.getRunningTimeMilli() * 0.99);
+      runner.options.maxRunningTimeMilli = (long) ((double) stanExec.getRunningTimeMilli() * 0.9);
       runner.run();
       
       Map<String, List<Double>> variableSamplesFromStanOutput = stanExec.variableSamplesFromStanOutput();
