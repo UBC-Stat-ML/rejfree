@@ -324,7 +324,7 @@ public class LocalRFSampler
     _collisionQueue.add(factor, candidateCollisionTime);
   }
   
-  private static final double epsilon = 1e-10;
+  private static final double epsilon = 1;
   
   /**
    * @param neighborFactors
