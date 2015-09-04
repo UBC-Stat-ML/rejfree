@@ -97,9 +97,11 @@ public class CompareStanRFOnNormalModel implements Runnable
           
           if (d % variableMonitorInterval == 0)
           {
-            double ess = EffectiveSize.effectiveSize( isRF 
+            List<Double> samples = isRF 
                 ? runner.saveRaysProcessor.convertToSample(variable, 4.0)
-                : variableSamplesFromStanOutput.get(stanVarName(d)));
+                : variableSamplesFromStanOutput.get(stanVarName(d));
+            recordPartialSums(samples, methodName, d, truth);
+            double ess = EffectiveSize.effectiveSize(samples);
             Results.getGlobalOutputManager().printWrite("essPerSec", 
                 "method", methodName, 
                 "dim", d,
@@ -113,6 +115,25 @@ public class CompareStanRFOnNormalModel implements Runnable
     output.close();
   }
   
+  private void recordPartialSums(List<Double> samples, String methodName, int dim, double truth)
+  {
+    SummaryStatistics stat = new SummaryStatistics();
+    int counter = 0;
+    final int interval = samples.size() / 100;
+    int percent = 0;
+    for (double cur : samples)
+    {
+      stat.addValue(cur);
+      if (counter > 0 && counter++ % interval == 0)
+        Results.getGlobalOutputManager().printWrite("partialSums",
+            "method", methodName,
+            "dim", dim,
+            "percent", percent++,
+            "value", (stat.getVariance() - truth) /truth);
+          
+    }
+  }
+
   public static final String VAR_NAME = "x";
   
   private String stanVarName(int d)
