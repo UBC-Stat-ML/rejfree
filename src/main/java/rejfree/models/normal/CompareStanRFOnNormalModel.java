@@ -31,7 +31,13 @@ public class CompareStanRFOnNormalModel implements Runnable
   public RFSamplerOptions rfOptions = new RFSamplerOptions();
   
   @OptionSet(name = "stan")
-  public StanUtils.StanOptions stanOptions = new StanUtils.StanOptions(); 
+  public StanUtils.StanOptions stanOptions = new StanUtils.StanOptions();
+  
+  @Option(gloss = "If equal to zero, run stan first to compare against it.")
+  public long timeMilli = 0;
+  
+  @Option 
+  public boolean recordPartialSums = false;
   
   @Option
   public int nRepeats = 100;
@@ -52,16 +58,29 @@ public class CompareStanRFOnNormalModel implements Runnable
     chain = new NormalChain(options);
     OutputManager output = Results.getGlobalOutputManager();
     
+    boolean needStan = (timeMilli == 0);
+    boolean[] isRFs = needStan ? new boolean[]{true,false} : new boolean[]{true};
+    
     for (int rep = 0; rep < nRepeats; rep++)
     {
       DoubleMatrix exactSample = chain.exactSample();
       
       NormalChainModel modelSpec = chain.new NormalChainModel(exactSample.data);
       
-      StanExecution stanExec = new StanExecution(chain.stanModel(), stanOptions);
-      stanExec.addInit(VAR_NAME, exactSample);
-      stanExec.run();
-      Map<String,SummaryStatistics> stanStatistics = stanExec.stanOutputToSummaryStatistics();
+      long time = timeMilli;
+      Map<String,SummaryStatistics> stanStatistics = null;
+      StanExecution stanExec = null;
+      if (needStan)
+      {
+        System.out.println("Running Stan to determine running time cap for RF");
+        stanExec = new StanExecution(chain.stanModel(), stanOptions);
+        stanExec.addInit(VAR_NAME, exactSample);
+        stanExec.run();
+        stanStatistics = stanExec.stanOutputToSummaryStatistics();
+        time = (long) ((double) stanExec.getRunningTimeMilli() * 0.99);
+      }
+      else
+        System.out.println("Running RF only (skipping Stan) since a running time has been specified. \nIf you want to run Stan leave timeMilli to zero.");
       
       // run ours for the same time
       LocalRFRunner runner = new LocalRFRunner();
@@ -72,16 +91,16 @@ public class CompareStanRFOnNormalModel implements Runnable
       
       runner.options.maxSteps = Integer.MAX_VALUE;
       runner.options.maxTrajectoryLength = Double.POSITIVE_INFINITY;
-      runner.options.maxRunningTimeMilli = (long) ((double) stanExec.getRunningTimeMilli() * 0.99);
+      runner.options.maxRunningTimeMilli = time;
       runner.run();
       
-      Map<String, List<Double>> variableSamplesFromStanOutput = stanExec.variableSamplesFromStanOutput();
+      Map<String, List<Double>> variableSamplesFromStanOutput = needStan ? stanExec.variableSamplesFromStanOutput() : null;
       for (int d = 0; d < modelSpec.variables.size(); d++)
       {
         RealVariable variable = modelSpec.variables.get(d);
         double truth = chain.covarMatrix.get(d, d);
         
-        for (boolean isRF : new boolean[]{true,false})
+        for (boolean isRF : isRFs)
         {
           double estimate = isRF ? runner.momentRayProcessor.getVarianceEstimate(variable) : stanStatistics.get(stanVarName(d)).getVariance();
           double error = Math.abs(truth - estimate);
@@ -100,7 +119,8 @@ public class CompareStanRFOnNormalModel implements Runnable
             List<Double> samples = isRF 
                 ? runner.saveRaysProcessor.convertToSample(variable, 4.0)
                 : variableSamplesFromStanOutput.get(stanVarName(d));
-            recordPartialSums(samples, methodName, d, truth);
+            if (recordPartialSums)
+              recordPartialSums(samples, methodName, d, truth);
             double ess = EffectiveSize.effectiveSize(samples);
             Results.getGlobalOutputManager().printWrite("essPerSec", 
                 "method", methodName, 
