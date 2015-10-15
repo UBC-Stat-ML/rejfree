@@ -46,7 +46,7 @@ public class StanUtils
     public Random rand = new Random(1);
 
     @Option
-    public boolean useDiagMetric = true;
+    public boolean useDiagMetric = false;
   }
   
   public static class StanExecution
@@ -112,7 +112,7 @@ public class StanUtils
               "num_warmup=" + options.nStanWarmUps + " " +
               "algorithm=hmc " +
                 "engine=" + (options.useNuts ? "nuts" : "static") + " " +
-                "metric=" + (options.useDiagMetric  ? "unit_e" : "diag_e") + " " +
+                "metric=" + (options.useDiagMetric  ? "diag_e" : "unit_e") + " " +
             "output " +
               "diagnostic_file=diagnostic.txt" + " " + 
               "file=" + output.getAbsolutePath() + " " +
