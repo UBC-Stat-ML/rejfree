@@ -46,7 +46,7 @@ public class StanUtils
     public Random rand = new Random(1);
 
     @Option
-    public boolean useDiagMetric = false;
+    public boolean useDiagMetric = true;
   }
   
   public static class StanExecution
