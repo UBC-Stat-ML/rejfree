@@ -151,7 +151,7 @@ public class LocalRFSampler
   {
     // sample a factor
     CollisionFactor f = allFactors.get(rand.nextInt(allFactors.size()));
-    Collection<?> immediateNeighborVariables = model.neighborVariables(f);
+    Collection<?> immediateNeighborVariables = model.neighborLatentVariables(f);
     Collection<CollisionFactor> neighborFactors = neighborFactors(immediateNeighborVariables);
     Collection<?> extendedNeighborVariables = neighborVariables(neighborFactors);
     
@@ -274,7 +274,7 @@ public class LocalRFSampler
     
     // TODO: if isActualCollision is false, it might be possible to update only a subset
     // of the nodes below
-    Collection<?> immediateNeighborVariables = model.neighborVariables(collisionFactor);
+    Collection<?> immediateNeighborVariables = model.neighborLatentVariables(collisionFactor);
     Collection<CollisionFactor> neighborFactors = neighborFactors(immediateNeighborVariables);
     Collection<?> extendedNeighborVariables = neighborVariables(neighborFactors);
     
