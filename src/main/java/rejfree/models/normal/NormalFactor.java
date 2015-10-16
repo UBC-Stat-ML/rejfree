@@ -2,8 +2,10 @@ package rejfree.models.normal;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.math3.distribution.MultivariateNormalDistribution;
 import org.jblas.Decompose;
 import org.jblas.DoubleMatrix;
 
@@ -14,6 +16,7 @@ import bayonet.math.JBlasUtils;
 import bayonet.math.NumericalUtils;
 import blang.annotations.FactorComponent;
 import blang.factors.FactorList;
+import blang.factors.GenerativeFactor;
 import blang.variables.RealVariable;
 
 
@@ -24,11 +27,12 @@ import blang.variables.RealVariable;
  * @author Alexandre Bouchard (alexandre.bouchard@gmail.com)
  *
  */
-public class NormalFactor implements CollisionFactor
+public class NormalFactor implements CollisionFactor, GenerativeFactor
 {
   @FactorComponent
   public final FactorList<RealVariable> variables;
   
+  // Note: this implementation would not currently support making precision random
   private final DoubleMatrix precision;
   
   private final boolean isBin;
@@ -69,7 +73,8 @@ public class NormalFactor implements CollisionFactor
     p0 = isBin ? precision.get(0,0) : Double.NaN;
     p1 = isBin ? precision.get(1,1) : Double.NaN;
     d  = isBin ? precision.get(0,1) : Double.NaN;
-    NumericalUtils.checkIsClose(precision.get(0,1), precision.get(1,0));
+    if (isBin)
+      NumericalUtils.checkIsClose(precision.get(0,1), precision.get(1,0));
   }
 
   @Override
@@ -153,5 +158,16 @@ public class NormalFactor implements CollisionFactor
   public int nVariables()
   {
     return dim();
+  }
+
+  @Override
+  public void generate(Random random)
+  {
+    DoubleMatrix covarMatrix = JBlasUtils.inversePositiveMatrix(precision);  
+    MultivariateNormalDistribution normal = new MultivariateNormalDistribution(new DoubleMatrix(dim()).data, JBlasUtils.asDoubleArray(covarMatrix));
+    normal.reseedRandomGenerator(random.nextLong());
+    double[] sample = normal.sample();
+    for (int i = 0; i < sample.length; i++)
+      variables.list.get(i).setValue(sample[i]);
   }
 }

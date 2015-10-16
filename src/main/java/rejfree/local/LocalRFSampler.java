@@ -203,13 +203,16 @@ public class LocalRFSampler
   private double currentTime = 0.0;
   public void iterate(Random rand, int maxNumberOfIterations, double maxTrajectoryLen, long maxTimeMilli)
   {
+    if (currentTime > 0.0)
+      throw new RuntimeException("LocalRFSampler.iterate() currently does not support being called several "
+          + "times on the same instance. Create another object.");
+
     Stopwatch watch = maxTimeMilli == Long.MAX_VALUE ? null : Stopwatch.createStarted();
-    if (currentTime == 0.0)
-    {
-      globalVelocityRefreshment(rand, 0.0, true);
-      for (RayProcessor rayProc : rayProcessors)
-        rayProc.init(this);
-    }
+
+    globalVelocityRefreshment(rand, 0.0, true);
+    for (RayProcessor rayProc : rayProcessors)
+      rayProc.init(this);
+
     double nextRefreshmentTime = rfOptions.refreshRate == 0 ? Double.POSITIVE_INFINITY : Exponential.generate(rand, rfOptions.refreshRate);
     mainLoop : for (int iter = 0; iter < maxNumberOfIterations; iter++)
     {

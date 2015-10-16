@@ -3,7 +3,7 @@ package rejfree.local;
 import java.util.Collections;
 
 import org.jblas.DoubleMatrix;
-import org.junit.Test;
+//import org.junit.Test;
 
 import rejfree.models.normal.NormalChain;
 import rejfree.models.normal.NormalChainOptions;
@@ -30,7 +30,7 @@ public class CheckESSRobustness implements Runnable
     Mains.instrumentedRun(args, new CheckESSRobustness());
   }
   
-  @Test
+//  @Test
   public void run()
   {
     org.jblas.util.Random.seed(options.random.nextLong());
