@@ -136,6 +136,11 @@ public class MRF
     return "theta";
   }
   
+  public String stanLatentCoordinate(int index)
+  {
+    return stanLatentVariableName() + "." + (index+1);
+  }
+  
   public String stanObservedVariableName()
   {
     return "observations";
