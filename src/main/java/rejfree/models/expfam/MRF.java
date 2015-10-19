@@ -25,10 +25,10 @@ import briefj.opt.OptionSet;
 
 
 
-public class ExponentialFamilyMRF
+public class MRF
 {
   @OptionSet(name = "mrf")
-  public final ExponentialFamilyMRFOptions options;
+  public final MRFOptions options;
   
   private CoordinatePacker _packer;
   public CoordinatePacker getPacker()
@@ -43,12 +43,12 @@ public class ExponentialFamilyMRF
     return getPacker().max;
   }
   
-  public ExponentialFamilyMRF()
+  public MRF()
   {
-    this.options = new ExponentialFamilyMRFOptions();
+    this.options = new MRFOptions();
   }
   
-  public ExponentialFamilyMRF(ExponentialFamilyMRFOptions options)
+  public MRF(MRFOptions options)
   {
     this.options = options;
   }

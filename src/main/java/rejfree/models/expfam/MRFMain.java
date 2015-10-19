@@ -7,7 +7,7 @@ import rejfree.StanUtils;
 import rejfree.StanUtils.StanExecution;
 import rejfree.local.LocalRFRunner;
 import rejfree.local.LocalRFRunnerOptions;
-import rejfree.models.expfam.ExponentialFamilyMRF.ModelSpec;
+import rejfree.models.expfam.MRF.ModelSpec;
 import briefj.BriefIO;
 import briefj.opt.Option;
 import briefj.opt.OptionSet;
@@ -25,7 +25,7 @@ public class MRFMain implements Runnable
   public StanUtils.StanOptions stanOptions = new StanUtils.StanOptions(); 
   
   @OptionSet(name = "model")
-  public ExponentialFamilyMRFOptions modelOptions = new ExponentialFamilyMRFOptions();
+  public MRFOptions modelOptions = new MRFOptions();
   
   @Option
   public boolean runRF = true;
@@ -44,7 +44,7 @@ public class MRFMain implements Runnable
   @Override
   public void run()
   {
-    ExponentialFamilyMRF mrf = new ExponentialFamilyMRF(modelOptions);
+    MRF mrf = new MRF(modelOptions);
     
     
     if (runStan)

@@ -5,7 +5,7 @@ import briefj.opt.Option;
 
 
 
-public class ExponentialFamilyMRFOptions
+public class MRFOptions
 {
   @Option
   public double diag = 1;
