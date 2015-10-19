@@ -4,7 +4,7 @@ import org.jblas.DoubleMatrix;
 import org.junit.Test;
 
 import rejfree.local.LocalRFRunner;
-import rejfree.local.LocalRFRunner.LocalRFRunnerOption;
+import rejfree.local.LocalRFRunnerOptions;
 import rejfree.models.normal.NormalChain.NormalChainModel;
 import bayonet.coda.EffectiveSize;
 import blang.variables.RealVariable;
@@ -22,7 +22,7 @@ public class RunRFOnNormalModel implements Runnable
   public NormalChainOptions options = new NormalChainOptions();
   
   @OptionSet(name = "rfRunner")
-  public LocalRFRunnerOption runnerOptions = new LocalRFRunnerOption();
+  public LocalRFRunnerOptions runnerOptions = new LocalRFRunnerOptions();
   
   @Option
   public int nRepeats = 100;

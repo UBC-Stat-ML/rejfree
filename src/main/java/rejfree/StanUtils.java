@@ -33,7 +33,7 @@ public class StanUtils
     @Option
     public int nStanWarmUps = 1000;
     
-    @Option(required = true)
+    @Option
     public File stanHome = null;
     
     @Option 
@@ -57,9 +57,16 @@ public class StanUtils
     private File output;
     private boolean ran = false;
     private StringBuilder initString = new StringBuilder();
+    private File dataFile;
       
     public StanExecution(String model, StanOptions options)
     {
+      this(model, options, null);
+    }
+    
+    public StanExecution(String model, StanOptions options, File dataFile)
+    {
+      this.dataFile = dataFile;
       this.options = options;
       this.model = model;
       output = Results.getFileInResultFolder(options.outputName);
@@ -67,10 +74,15 @@ public class StanUtils
     
     public void addInit(String varName, DoubleMatrix values)
     {
-      initString.append("x <- c(");
+      initString.append(varName + " <- c(");
       for (int d = 0; d < values.length; d++)
         initString.append("" + values.get(d) + (d == values.length - 1 ? "" : ","));
       initString.append(")\n");
+    }
+    
+    private boolean hasDataFile()
+    {
+      return dataFile != null;
     }
 
     private File stanProgram()
@@ -103,7 +115,9 @@ public class StanUtils
     {
       boolean hasInit = !initString.toString().isEmpty();
       File initFile = hasInit ? createInit() : null;
-      return Command.byPath(stanProgram())
+      File stanProgram = stanProgram();
+      System.out.println("Running stan exec cached at:" + stanProgram.getAbsolutePath());
+      return Command.byPath(stanProgram)
         .ranIn(Results.getResultFolder())
         .withStandardOutMirroring()
         .withArgs(
@@ -113,6 +127,7 @@ public class StanUtils
               "algorithm=hmc " +
                 "engine=" + (options.useNuts ? "nuts" : "static") + " " +
                 "metric=" + (options.useDiagMetric  ? "diag_e" : "unit_e") + " " +
+            (hasDataFile() ? "data file=" + dataFile.getAbsolutePath() + " " : "") + 
             "output " +
               "diagnostic_file=diagnostic.txt" + " " + 
               "file=" + output.getAbsolutePath() + " " +

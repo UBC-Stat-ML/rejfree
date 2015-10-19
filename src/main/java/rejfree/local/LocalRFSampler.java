@@ -19,17 +19,13 @@ import com.google.common.base.Stopwatch;
 
 import rejfree.StaticUtils;
 import rejfree.global.GlobalRFSampler.RFSamplerOptions;
-import rejfree.processors.MomentRayProcessor;
 import rejfree.processors.RayProcessor;
 import bayonet.distributions.Exponential;
 import blang.ProbabilityModel;
-import blang.MCMCFactory.Factories;
 import blang.MCMCFactory.MCMCOptions;
 import blang.factors.Factor;
-import blang.processing.NodeProcessorFactory;
 import blang.processing.Processor;
 import blang.processing.ProcessorContext;
-import blang.processing.ProcessorFactory;
 import blang.variables.RealVariable;
 
 
@@ -77,20 +73,6 @@ public class LocalRFSampler
   public void addRayProcessor(RayProcessor processor)
   {
     this.rayProcessors.add(processor);
-  }
-  
-  public void addDefaultPointProcessors()
-  {
-    Factories<ProcessorFactory,NodeProcessorFactory> processorFactories = new Factories<ProcessorFactory,NodeProcessorFactory>(new NodeProcessorFactory());
-    for (ProcessorFactory f : processorFactories.factories)
-      processors.addAll(f.build(model));
-  }
-  
-  public MomentRayProcessor addDefaultMomentRayProcessor()
-  {
-    MomentRayProcessor momentProcessor = new MomentRayProcessor();
-    rayProcessors.add(momentProcessor);
-    return momentProcessor;
   }
   
   private void processRay(RealVariable var, TrajectoryRay ray, double timeTheRayEnds)

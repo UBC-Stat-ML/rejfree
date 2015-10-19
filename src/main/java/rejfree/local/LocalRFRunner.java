@@ -2,19 +2,16 @@ package rejfree.local;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
 
-import rejfree.global.GlobalRFSampler.RFSamplerOptions;
 import rejfree.processors.MomentRayProcessor;
 import rejfree.processors.SaveRaysProcessor;
 import rejfree.processors.SaveSamplesProcessor;
 import blang.ProbabilityModel;
 import blang.variables.RealVariable;
 import briefj.OutputManager;
-import briefj.opt.Option;
 import briefj.opt.OptionSet;
 import briefj.run.Results;
 
@@ -23,34 +20,16 @@ import briefj.run.Results;
 public class LocalRFRunner
 {
   @OptionSet(name = "runnerOptions")
-  public final LocalRFRunnerOption options;
+  public final LocalRFRunnerOptions options;
   
-  public LocalRFRunner(LocalRFRunnerOption options)
+  public LocalRFRunner(LocalRFRunnerOptions options)
   {
     this.options = options;
   }
   
   public LocalRFRunner()
   {
-    this.options = new LocalRFRunnerOption();
-  }
-  
-  public static class LocalRFRunnerOption
-  {
-    @Option
-    public long maxRunningTimeMilli = Long.MAX_VALUE;
-    
-    @Option
-    public int maxSteps = 1000;
-    
-    @Option
-    public double maxTrajectoryLength = Double.POSITIVE_INFINITY;
-    
-    @Option
-    public Random samplingRandom = new Random(1);
-    
-    @OptionSet(name = "rfOptions")
-    public RFSamplerOptions rfOptions = new RFSamplerOptions();
+    this.options = new LocalRFRunnerOptions();
   }
   
   public ProbabilityModel model;
