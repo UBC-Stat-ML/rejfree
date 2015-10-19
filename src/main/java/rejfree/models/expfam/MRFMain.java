@@ -39,11 +39,21 @@ public class MRFMain implements Runnable
   public boolean runStan = true;
   
   @Option
+  public Random randomForBothAlgorithms = new Random(1);
+  
+  @Option
   public long generateRandom = 31;
 
   public static void main(String[] args)
   {
     Mains.instrumentedRun(args, new MRFMain());
+  }
+  
+  private Random reInitRandom(Random before)
+  {
+    long r1 = before.nextLong();
+    long r2 = randomForBothAlgorithms.nextLong();
+    return new Random(r1 * r2);
   }
 
   @Override
@@ -51,6 +61,9 @@ public class MRFMain implements Runnable
   {
     MRF mrf = new MRF(modelOptions);
     OutputManager output = Results.getGlobalOutputManager();
+    
+    stanOptions.rand = reInitRandom(stanOptions.rand);
+    localRFRunnerOption.samplingRandom = reInitRandom(localRFRunnerOption.samplingRandom);
     
     long stanRuntimeMillis = -1;
     if (runStan)
