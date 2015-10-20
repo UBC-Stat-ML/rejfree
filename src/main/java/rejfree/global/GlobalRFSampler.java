@@ -42,7 +42,7 @@ public class GlobalRFSampler
     public boolean useInformedVelocityUpdate = false;
 
     @Option
-    public boolean useLocalRefreshment = false;
+    public boolean useLocalRefreshment = true;
 
     @Option
     public boolean usePartialRefreshment = false;
