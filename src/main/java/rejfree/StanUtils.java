@@ -129,7 +129,6 @@ public class StanUtils
                 "metric=" + (options.useDiagMetric  ? "diag_e" : "unit_e") + " " +
             (hasDataFile() ? "data file=" + dataFile.getAbsolutePath() + " " : "") + 
             "output " +
-              "diagnostic_file=diagnostic.txt" + " " + 
               "file=" + output.getAbsolutePath() + " " +
             (hasInit ? "init=" + initFile.getAbsolutePath() : "") + " " +
             "random seed=" + options.rand.nextInt());
