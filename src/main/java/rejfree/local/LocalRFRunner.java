@@ -104,6 +104,7 @@ public class LocalRFRunner
     
     output.printWrite("general-sampler-diagnostic", 
         "wallClockTimeMilli", elapsed, 
+        "trajectoryLength", sampler.getTrajectoryLength(),
         "nCollisions", sampler.getNCollisions(),
         "nCollidedVariables", sampler.getNCollidedVariables(),
         "nRefreshments", sampler.getNRefreshments(),

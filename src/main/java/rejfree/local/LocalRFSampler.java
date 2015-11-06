@@ -398,6 +398,11 @@ public class LocalRFSampler
       updateVariable(var, currentTime);
   }
   
+  public double getTrajectoryLength()
+  {
+    return currentTime;
+  }
+  
   public int getNCollisions()
   {
     return nCollisions;
