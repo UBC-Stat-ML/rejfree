@@ -3,6 +3,7 @@ package rejfree.models.normal;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
 import org.junit.Test;
@@ -13,6 +14,7 @@ import rejfree.global.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFRunner;
 import rejfree.models.normal.NormalChain.NormalChainModel;
 import bayonet.coda.EffectiveSize;
+import bayonet.rplot.RUtils;
 import blang.variables.RealVariable;
 import briefj.OutputManager;
 import briefj.opt.Option;
@@ -44,6 +46,12 @@ public class CompareStanRFOnNormalModel implements Runnable
   
   @Option(gloss = "Which variables to monitor (1 for monitoring all of them)")
   public int variableMonitorInterval = 10;
+  
+  @Option 
+  public double fractionOfTrajectoryToPlot = 0.0;
+  
+  @Option 
+  public int nTrajectoryPoints = 10000;
   
   private NormalChain chain;
 
@@ -127,14 +135,31 @@ public class CompareStanRFOnNormalModel implements Runnable
                 "dim", d,
                 "rep", rep,
                 "value", (1000.0*ess/runner.options.maxRunningTimeMilli));
+            
+            if (fractionOfTrajectoryToPlot != 0.0)
+              plotTrajectory(samples, output, isRF ? "RF" : "STAN", d);
           }
         }
       }
     }
     
     output.close();
+    
+    if (fractionOfTrajectoryToPlot != 0.0)
+      RUtils.callGeneratedRScript("/rejfree/plotTrajectory2.txt", Pair.of(Results.getFileInResultFolder("trajectories.csv"), Results.getFileInResultFolder("trajectories.pdf")));
+    
   }
   
+  
+  
+  private void plotTrajectory(List<Double> samples, OutputManager output, String method, int d)
+  {
+    double N = (int) (samples.size() * fractionOfTrajectoryToPlot);
+    
+    for (double i = 0; i < nTrajectoryPoints; i++)
+      output.write("trajectories", "step", i, "method", method, "d", d, "value", samples.get((int) (i * N / nTrajectoryPoints)));
+  }
+
   private void recordPartialSums(List<Double> samples, String methodName, int dim, double truth)
   {
     SummaryStatistics stat = new SummaryStatistics();

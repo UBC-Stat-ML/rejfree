@@ -1,0 +1,8 @@
+require("reshape2")
+library("ggplot2")
+    
+data <- read.csv("@{getLeft()}", header = TRUE, sep = ",")
+
+plot <- ggplot(data, aes(x=step, y=value, group=method)) + geom_line(aes(colour = method)) + theme_bw() + facet_grid( . ~ d )
+
+ggsave('@{getRight()}', plot, width = 7, height = 3)
