@@ -157,7 +157,7 @@ public class CompareStanRFOnNormalModel implements Runnable
     double N = (int) (samples.size() * fractionOfTrajectoryToPlot);
     
     for (double i = 0; i < nTrajectoryPoints; i++)
-      output.write("trajectories", "step", i, "method", method, "d", d, "value", samples.get((int) (i * N / nTrajectoryPoints)));
+      output.write("trajectories", "step", (double) (100 * i * fractionOfTrajectoryToPlot / nTrajectoryPoints), "method", method, "d", d, "value", samples.get((int) (i * N / nTrajectoryPoints)));
   }
 
   private void recordPartialSums(List<Double> samples, String methodName, int dim, double truth)

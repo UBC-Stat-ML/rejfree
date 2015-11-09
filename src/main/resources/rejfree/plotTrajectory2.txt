@@ -3,6 +3,12 @@ library("ggplot2")
     
 data <- read.csv("@{getLeft()}", header = TRUE, sep = ",")
 
-plot <- ggplot(data, aes(x=step, y=value, group=method)) + geom_line(aes(colour = method)) + theme_bw() + facet_grid( . ~ d )
+plot <- ggplot(data, aes(x=step, y=value, group=method)) + 
+  geom_line(aes(colour = method)) + 
+  theme_bw() + 
+  facet_grid( . ~ d ) + 
+  xlab("Percent of samples processed") +
+  ylab("Sample") +
+  theme(legend.justification=c(1,1), legend.position=c(1,1))
 
 ggsave('@{getRight()}', plot, width = 7, height = 3)
