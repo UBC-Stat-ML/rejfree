@@ -1,0 +1,18 @@
+require("reshape2")
+library("ggplot2")
+
+data <- read.csv("@{toString()}/energy.csv", header = TRUE, sep = ",")
+plot <- ggplot(data, aes(x=t, y=value, group=name)) + 
+  geom_line(aes(colour = name)) + 
+  theme_bw() + 
+  xlab("Time") +
+  theme(legend.justification=c(0,1), legend.position=c(0,1))
+ggsave('@{toString()}/energy.pdf', plot, width = 5, height = 3)
+
+data <- read.csv("@{toString()}/deriv.csv", header = TRUE, sep = ",")
+plot <- ggplot(data, aes(x=t, y=value, group=name)) + 
+  geom_line(aes(colour = name)) + 
+  theme_bw() + 
+  xlab("Time") +
+  theme(legend.justification=c(0,1), legend.position=c(0,1))
+ggsave('@{toString()}/deriv.pdf', plot, width = 5, height = 3)
