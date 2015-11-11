@@ -385,7 +385,7 @@ public class LocalRFSampler
     return result;
   }
 
-  private void updateVariable(Object _variable, double currentTime)
+  public void updateVariable(Object _variable, double currentTime)
   {
     RealVariable variable = (RealVariable) _variable;
     TrajectoryRay ray = trajectories.get(variable);
