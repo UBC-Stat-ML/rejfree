@@ -50,6 +50,11 @@ public class NormalFactor implements CollisionFactor, GenerativeFactor
     return new NormalFactor(precision, variables);
   }
   
+  public static NormalFactor newUnaryStandardNormal(RealVariable variable0)
+  {
+    return newUnaryFactor(new DoubleMatrix(new double[]{1.0}), variable0);
+  }
+  
   public static NormalFactor newBinaryFactor(DoubleMatrix precision, RealVariable variable0, RealVariable variable1)
   {
     List<RealVariable> variables = new ArrayList<RealVariable>();
