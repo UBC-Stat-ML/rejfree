@@ -160,8 +160,9 @@ public class PlotExample implements Runnable
     DoubleMatrix diff = end.sub(start);
     double time = diff.norm2();
     DoubleMatrix direction = diff.div(time);
+    out.write("collisionTime", "value", time);
     
-    double deltaT = time/nPoints;
+    double deltaT = 1.5*time/nPoints;
     for (int i = 0; i < nPoints; i++)
     {
       double curT = deltaT*i;
