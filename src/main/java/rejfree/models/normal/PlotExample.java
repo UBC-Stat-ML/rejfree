@@ -11,7 +11,7 @@ import rejfree.StaticUtils;
 import rejfree.local.CollisionFactor;
 import rejfree.local.LocalRFRunner;
 import rejfree.local.LocalRFRunnerOptions;
-import rejfree.mixture.MixtureMain.LocAtCollisionsProcessor;
+import rejfree.processors.LocAtCollisionsProcessor;
 import bayonet.opt.DifferentiableFunction;
 import bayonet.rplot.PlotContour;
 import bayonet.rplot.RUtils;
