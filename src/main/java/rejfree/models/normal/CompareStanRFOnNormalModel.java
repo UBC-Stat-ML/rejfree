@@ -50,6 +50,9 @@ public class CompareStanRFOnNormalModel implements Runnable
   @Option 
   public double fractionOfTrajectoryToPlot = 0.0;
   
+  @Option
+  public boolean saveTrajectories = false;
+  
   @Option 
   public int nTrajectoryPoints = 10000;
   
@@ -141,12 +144,18 @@ public class CompareStanRFOnNormalModel implements Runnable
           }
         }
       }
+      
+      
+      if (saveTrajectories)
+        runner.saveRaysProcessor.toCSV(Results.getFileInResultFolder("full-rf-trajectory.csv"));
     }
     
     output.close();
     
     if (fractionOfTrajectoryToPlot != 0.0)
       RUtils.callGeneratedRScript("/rejfree/plotTrajectory2.txt", Pair.of(Results.getFileInResultFolder("trajectories.csv"), Results.getFileInResultFolder("trajectories.pdf")));
+
+      
     
   }
   

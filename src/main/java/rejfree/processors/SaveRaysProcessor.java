@@ -1,5 +1,7 @@
 package rejfree.processors;
 
+import java.io.File;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -11,6 +13,8 @@ import rejfree.local.LocalRFSampler;
 import rejfree.local.TrajectoryRay;
 import blang.variables.RealVariable;
 import briefj.BriefCollections;
+import briefj.BriefIO;
+import briefj.CSV;
 
 
 
@@ -29,6 +33,20 @@ public class SaveRaysProcessor implements RayProcessor
       for (RealVariable key : variables)
         samples.put(key, new ArrayList<>());
     }
+  }
+  
+  public void toCSV(File f)
+  {
+    PrintWriter output = BriefIO.output(f);
+    output.println(CSV.toCSV("variableIndex", "time", "position"));
+    int varIndex = 0;
+    for (List<TrajectoryRay> traj : samples.values())
+    {
+      for (TrajectoryRay ray : traj)
+        output.println(CSV.toCSV(varIndex, ray.t, ray.position_t));
+      varIndex++;
+    }
+    output.close();
   }
 
   @Override
