@@ -147,7 +147,7 @@ public class CompareStanRFOnNormalModel implements Runnable
       
       
       if (saveTrajectories)
-        runner.saveRaysProcessor.toCSV(Results.getFileInResultFolder("full-rf-trajectory.csv"));
+        runner.saveRaysProcessor.toCSV(Results.getFileInResultFolder("full-rf-trajectory-" + rep + ".csv"));
     }
     
     output.close();
