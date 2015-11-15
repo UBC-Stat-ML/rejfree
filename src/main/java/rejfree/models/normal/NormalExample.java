@@ -27,7 +27,6 @@ import briefj.run.Results;
 
 public class NormalExample implements Runnable
 {
-  
   public static void main(String [] args)
   {
     Mains.instrumentedRun(args, new NormalExample());

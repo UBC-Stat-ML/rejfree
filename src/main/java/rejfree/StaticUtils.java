@@ -58,21 +58,6 @@ public class StaticUtils
   {
     return toProject.sub(unitTangentialVector.mul(toProject.dot(unitTangentialVector)));
   }
-  
-  public static void main(String [] args)
-  {
-    Random rand = new Random(1);
-    for (int i = 0; i < 100; i++)
-    {
-      DoubleMatrix v1 = uniformOnUnitBall(2, rand);
-      DoubleMatrix v2 = partialRefreshment(v1, 0.1, rand);
-      System.out.println(v1);
-      System.out.println(v2);
-      System.out.println(v1.dot(v2));
-      System.out.println(Math.acos(v1.dot(v2)));
-      System.out.println("---");
-    }
-  }
 
   /**
    * 

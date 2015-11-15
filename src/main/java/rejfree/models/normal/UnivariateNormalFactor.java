@@ -51,7 +51,6 @@ public class UnivariateNormalFactor implements CollisionFactor
     return Pair.of(normalCollisionTime(e, xv, vv),true); 
   }
   
-  
   public static double normalCollisionTime(double exponential, double xv, double vv)
   {
     final double s1 = xv < 0 ? - xv / vv : 0.0;

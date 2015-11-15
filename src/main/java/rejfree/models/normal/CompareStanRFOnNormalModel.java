@@ -154,12 +154,7 @@ public class CompareStanRFOnNormalModel implements Runnable
     
     if (fractionOfTrajectoryToPlot != 0.0)
       RUtils.callGeneratedRScript("/rejfree/plotTrajectory2.txt", Pair.of(Results.getFileInResultFolder("trajectories.csv"), Results.getFileInResultFolder("trajectories.pdf")));
-
-      
-    
   }
-  
-  
   
   private void plotTrajectory(List<Double> samples, OutputManager output, String method, int d)
   {
@@ -194,5 +189,4 @@ public class CompareStanRFOnNormalModel implements Runnable
   {
     return VAR_NAME + "." + (d+1);
   }
-
 }

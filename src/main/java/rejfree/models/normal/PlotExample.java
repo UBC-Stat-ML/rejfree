@@ -82,7 +82,6 @@ public class PlotExample implements Runnable
     return plot;
   }
 
-
   @Override
   public void run()
   {
@@ -97,9 +96,7 @@ public class PlotExample implements Runnable
     rfRunner.sampler.addRayProcessor(lcp);
     rfRunner.run();
   
-//    int start = findGoodIndex(collisionPositions);
     List<DoubleMatrix> toPlot =
-//        collisionPositions.subList(start-2, start+4)
         lcp.locationsAtCollisions;
     
     PlotTrajectory plot = PlotTrajectory.fromFirstTwoDimensions(toPlot);
@@ -179,6 +176,5 @@ public class PlotExample implements Runnable
     out.close();
     
     RUtils.callGeneratedRScript("/rejfree/plotEnergyAndIntensity.txt", dir);
-
   }
 }
