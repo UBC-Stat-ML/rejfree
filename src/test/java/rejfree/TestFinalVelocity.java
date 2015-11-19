@@ -13,7 +13,6 @@ import blang.validation.CheckStationarity;
 import briefj.run.Mains;
 import briefj.run.Results;
 import rejfree.global.GlobalRFSampler;
-import rejfree.global.GlobalRFSampler.RFSamplerOptions;
 import rejfree.models.normal.NormalEnergy;
 
 

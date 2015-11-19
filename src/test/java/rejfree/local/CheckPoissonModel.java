@@ -7,7 +7,7 @@ import java.util.Random;
 import org.jblas.DoubleMatrix;
 import org.junit.Test;
 
-import rejfree.global.GlobalRFSampler.RFSamplerOptions;
+import rejfree.RFSamplerOptions;
 import rejfree.models.expfam.PoissonFactor;
 import rejfree.models.normal.NormalFactor;
 import blang.MCMCFactory;

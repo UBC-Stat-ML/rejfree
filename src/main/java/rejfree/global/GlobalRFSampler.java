@@ -6,6 +6,7 @@ import java.util.Random;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
 
+import rejfree.RFSamplerOptions;
 import rejfree.StaticUtils;
 
 import com.google.common.collect.Lists;
@@ -13,7 +14,6 @@ import com.google.common.collect.Lists;
 import bayonet.distributions.Exponential;
 import bayonet.opt.DifferentiableFunction;
 import bayonet.opt.LBFGSMinimizer;
-import briefj.opt.Option;
 import static rejfree.StaticUtils.*;
 
 public class GlobalRFSampler
@@ -30,30 +30,6 @@ public class GlobalRFSampler
   
   private DoubleMatrix currentPosition, currentVelocity;
 
-  public static class RFSamplerOptions
-  {
-    @Option
-    public double refreshRate = 1.0;
-    
-    @Option
-    public double collectRate = 1.0;
-
-    @Option
-    public boolean useInformedVelocityUpdate = false;
-
-    @Option
-    public boolean useLocalRefreshment = true;
-
-    @Option
-    public boolean usePartialRefreshment = false;
-
-    @Option
-    public double alpha = 1.0;
-    
-    @Option
-    public double beta = 4.0;
-  }
-  
   private SummaryStatistics collisionToRefreshmentRatio = new SummaryStatistics();
   private SummaryStatistics collectedPerEvent = new SummaryStatistics();
   

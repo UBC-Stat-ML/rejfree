@@ -8,9 +8,9 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
 import org.junit.Test;
 
+import rejfree.RFSamplerOptions;
 import rejfree.StanUtils;
 import rejfree.StanUtils.StanExecution;
-import rejfree.global.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFRunner;
 import rejfree.models.normal.NormalChain.NormalChainModel;
 import bayonet.coda.EffectiveSize;

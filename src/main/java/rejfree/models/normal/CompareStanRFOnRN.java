@@ -9,8 +9,8 @@ import org.jblas.DoubleMatrix;
 import org.junit.Test;
 import org.mvel2.templates.TemplateRuntime;
 
+import rejfree.RFSamplerOptions;
 import rejfree.StanUtils;
-import rejfree.global.GlobalRFSampler.RFSamplerOptions;
 import rejfree.local.LocalRFRunner;
 import bayonet.coda.EffectiveSize;
 import blang.annotations.DefineFactor;

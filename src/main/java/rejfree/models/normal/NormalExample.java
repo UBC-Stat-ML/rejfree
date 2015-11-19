@@ -8,8 +8,8 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
 
 import rejfree.PlotTrajectory;
+import rejfree.RFSamplerOptions;
 import rejfree.global.GlobalRFSampler;
-import rejfree.global.GlobalRFSampler.RFSamplerOptions;
 
 import com.google.common.collect.Lists;
 

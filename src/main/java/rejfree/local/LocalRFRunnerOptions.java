@@ -2,7 +2,7 @@ package rejfree.local;
 
 import java.util.Random;
 
-import rejfree.global.GlobalRFSampler.RFSamplerOptions;
+import rejfree.RFSamplerOptions;
 import briefj.opt.Option;
 import briefj.opt.OptionSet;
 
