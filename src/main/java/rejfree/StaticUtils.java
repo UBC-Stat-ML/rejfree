@@ -29,11 +29,17 @@ public class StaticUtils
    */
   public static DoubleMatrix uniformOnUnitBall(int dimension, Random rand)
   {
+    DoubleMatrix random = standardMultivariateNormal(dimension, rand);
+    double norm = random.norm2();
+    return random.muli(1.0/norm);
+  }
+  
+  public static DoubleMatrix standardMultivariateNormal(int dimension, Random rand)
+  {
     DoubleMatrix random = new DoubleMatrix(dimension);
     for (int i = 0; i < dimension; i++)
       random.data[i] = rand.nextGaussian();
-    double norm = random.norm2();
-    return random.muli(1.0/norm);
+    return random;
   }
   
   public static DoubleMatrix partialRefreshment(DoubleMatrix currentVelocity, double angleRad, Random rand)

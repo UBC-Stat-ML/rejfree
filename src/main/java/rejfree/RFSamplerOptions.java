@@ -17,6 +17,9 @@ public class RFSamplerOptions
 
   @Option
   public boolean useLocalRefreshment = true;
+  
+  @Option
+  public boolean restrictVelocityNorm = true;
 
   @Option
   public boolean usePartialRefreshment = false;

@@ -63,6 +63,13 @@ public class LocalRFSampler
     allFactors = new ArrayList<>();
     for (Factor f : model.linearizedFactors())
       allFactors.add((CollisionFactor) f);
+    
+    if (options.usePartialRefreshment && (options.useLocalRefreshment || !options.restrictVelocityNorm))
+      throw new RuntimeException("Partial refreshment currently only works for "
+          + "(localRefresh=false, restrictVelocityNorm=true)");
+    
+    if (options.useInformedVelocityUpdate)
+      throw new RuntimeException("Option not supported in LocalRFSampler");
   }
   
   public void addPointProcessor(Processor processor)
@@ -101,10 +108,21 @@ public class LocalRFSampler
   {
     final List<Object> variables = model.getLatentVariables();
     final int dimensionality = variables.size();
-    final DoubleMatrix uniformOnUnitBall = 
-        rfOptions.usePartialRefreshment && !initializing 
-          ? StaticUtils.partialRefreshmentBetaAngle(currentVelocity(variables), rfOptions.alpha, rfOptions.beta, rand)
-          : StaticUtils.uniformOnUnitBall(variables.size(), rand);
+    DoubleMatrix newVelocity = null;
+    
+    if      (!rfOptions.usePartialRefreshment && !rfOptions.restrictVelocityNorm)
+      newVelocity = StaticUtils.standardMultivariateNormal(variables.size(), rand);
+    else if (!rfOptions.usePartialRefreshment &&  rfOptions.restrictVelocityNorm)
+      newVelocity = StaticUtils.uniformOnUnitBall(variables.size(), rand);
+    else if ( rfOptions.usePartialRefreshment &&  rfOptions.restrictVelocityNorm)
+    {
+      if (initializing)
+        newVelocity = StaticUtils.uniformOnUnitBall(variables.size(), rand);
+      else
+        newVelocity = StaticUtils.partialRefreshmentBetaAngle(currentVelocity(variables), rfOptions.alpha, rfOptions.beta, rand);
+    }
+    else
+      throw new RuntimeException();
     
     nRefreshments++;
     nRefreshedVariables += variables.size();
@@ -112,7 +130,7 @@ public class LocalRFSampler
     for (int i = 0; i < dimensionality; i++)
     {
       RealVariable variable = (RealVariable) variables.get(i);
-      double currentVelocity = uniformOnUnitBall.get(i);
+      double currentVelocity = newVelocity.get(i);
       if (initializing)
       {
         initTrajectory(refreshmentTime, variable, currentVelocity);
@@ -142,15 +160,20 @@ public class LocalRFSampler
     
     // compute velocity squared norm
     double sum = 0.0;
-    for (Object variable : immediateNeighborVariables)
-    {
-      double currentVComponent = trajectories.get(variable).velocity_t;
-      sum += currentVComponent * currentVComponent;
-    }
+    if (rfOptions.restrictVelocityNorm)
+      for (Object variable : immediateNeighborVariables)
+      {
+        double currentVComponent = trajectories.get(variable).velocity_t;
+        sum += currentVComponent * currentVComponent;
+      }
     
     // sample new velocity vector, rescale it
-    final DoubleMatrix newVelocity = StaticUtils.uniformOnUnitBall(immediateNeighborVariables.size(), rand);
-    newVelocity.muli(Math.sqrt(sum));
+    final DoubleMatrix newVelocity = rfOptions.restrictVelocityNorm ? 
+        StaticUtils.uniformOnUnitBall(immediateNeighborVariables.size(), rand) :
+        StaticUtils.standardMultivariateNormal(immediateNeighborVariables.size(), rand);
+    
+    if (rfOptions.restrictVelocityNorm)
+      newVelocity.muli(Math.sqrt(sum));
     
     for (Object variable : extendedNeighborVariables)
       updateVariable(variable, refreshmentTime);
