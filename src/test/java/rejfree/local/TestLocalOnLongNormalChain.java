@@ -8,6 +8,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import rejfree.RFSamplerOptions;
+import rejfree.RFSamplerOptions.RefreshmentMethod;
 import rejfree.local.LocalRFSampler;
 import rejfree.models.normal.NormalChain;
 import rejfree.models.normal.NormalChainOptions;
@@ -32,14 +33,13 @@ public class TestLocalOnLongNormalChain implements Runnable
     return (guess.sub(truth)).normmax();
   }
   
-  public void testMCAvgs(boolean useLocalRefresh, boolean usePartialRefresh)
+  public void testMCAvgs(RefreshmentMethod refreshMethod)
   {
     System.out.println("Checking MC averages");
     LocalRFRunner runner = new LocalRFRunner();
     runner.options.rfOptions.refreshRate = 2.0;
     runner.options.rfOptions.collectRate = 1.0;
-    runner.options.rfOptions.useLocalRefreshment = useLocalRefresh;
-    runner.options.rfOptions.usePartialRefreshment = usePartialRefresh;
+    runner.options.rfOptions.refreshmentMethod = refreshMethod;
     
     final DoubleMatrix 
       outerSumsRF = new DoubleMatrix(chain.dim(),chain.dim());
@@ -97,14 +97,13 @@ public class TestLocalOnLongNormalChain implements Runnable
     } 
   }
   
-  public void testInvariance(boolean useLocalRefresh, boolean usePartial)
+  public void testInvariance(RefreshmentMethod method)
   {
     System.out.println("Checking invariance");
     RFSamplerOptions options = new RFSamplerOptions();
     options.refreshRate = 1.0;
     options.collectRate = 0.0;
-    options.useLocalRefreshment = useLocalRefresh;
-    options.usePartialRefreshment = usePartial;
+    options.refreshmentMethod = method;
 
     double fixedTime = 10;
     int nRepeats = 20000;
@@ -160,15 +159,13 @@ public class TestLocalOnLongNormalChain implements Runnable
     
     System.out.println("true covariance matrix:\n" + chain.covarMatrix);
 
-    for (boolean usePartialRefresh : new boolean[]{true,false})
-      for (boolean useLocalRefresh : new boolean[]{true,false})
-      {
-        System.out.println("=====");
-        System.out.println("useLocalRefresh = " + useLocalRefresh);
-        System.out.println("usePartialRefresh = " + usePartialRefresh);
-        testMCAvgs(useLocalRefresh, usePartialRefresh);
-        testInvariance(useLocalRefresh, usePartialRefresh);
-      }
+    for (RefreshmentMethod method : RefreshmentMethod.values())
+    {
+      System.out.println("=====");
+      System.out.println("refreshmentMethod = " + method);
+      testMCAvgs(method);
+      testInvariance(method);
+    }
   }
 
   public static void main(String[] args)

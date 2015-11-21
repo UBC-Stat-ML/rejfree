@@ -12,6 +12,7 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import rejfree.RFSamplerOptions;
+import rejfree.RFSamplerOptions.RefreshmentMethod;
 import rejfree.local.LocalRFSampler;
 import rejfree.models.normal.NumericNormalFactor;
 import bayonet.math.JBlasUtils;
@@ -39,58 +40,56 @@ public class TestLocalOnNormalDist implements Processor
   @Test
   public void test()
   {
-    for (boolean usePartialRef : new boolean[]{true,false})
-      for (boolean useLocalRef : new boolean[]{true,false})
+    for (RefreshmentMethod method : RefreshmentMethod.values())
+    {
+      modelSpec = new ChainModel();
+      model = new ProbabilityModel(modelSpec);
+      
+      System.out.println(model);
+      
+      DoubleMatrix localPrecision = JBlasUtils.inversePositiveMatrix(localCovar);
+      System.out.println(localPrecision);
+      
+      DoubleMatrix fullPrecision = new DoubleMatrix(3, 3);
+      for (int i = 0; i < 2; i++)
       {
-        modelSpec = new ChainModel();
-        model = new ProbabilityModel(modelSpec);
-        
-        System.out.println(model);
-        
-        DoubleMatrix localPrecision = JBlasUtils.inversePositiveMatrix(localCovar);
-        System.out.println(localPrecision);
-        
-        DoubleMatrix fullPrecision = new DoubleMatrix(3, 3);
-        for (int i = 0; i < 2; i++)
-        {
-          for (int row = 0; row < localPrecision.rows; row++)
-            for (int col = 0; col < localPrecision.columns; col++)
-              fullPrecision.put(row + i, col + i, fullPrecision.get(row + i, col + i) + localPrecision.get(row, col));
-        }
-        
-        System.out.println(fullPrecision);
-        DoubleMatrix fullCovar = JBlasUtils.inversePositiveMatrix(fullPrecision);
-        System.out.println(fullCovar);
-        
-        for (int i = 0; i < 3; i++)
-          stats.add(new SummaryStatistics());
-        
-        
-        RFSamplerOptions options = new RFSamplerOptions();
-        options.useLocalRefreshment = useLocalRef;
-        options.usePartialRefreshment = usePartialRef;
-        options.refreshRate = 0.0001;
-        options.collectRate = 10.0;
-        LocalRFSampler local = new LocalRFSampler(model, options);
-        
-        local.processors.clear();
-        local.processors.add(this);
-        Random rand = new Random(1);
-        local.iterate(rand , 200000, Double.POSITIVE_INFINITY);
-        
-        for (int i = 0; i < 3; i++)
-        {
-          System.out.println(stats.get(i).getVariance());
-          System.out.println(stats.get(i).getMean());
-          Assert.assertEquals(fullCovar.get(i,i), stats.get(i).getVariance(), 0.02);
-          Assert.assertEquals(0.0, stats.get(i).getMean(), 0.02);
-          System.out.println("---");
-        }
-        
-        outerProduct.divi(stats.get(0).getN());
-        System.out.println("Empirical covar matrix");
-        System.out.println(outerProduct);
+        for (int row = 0; row < localPrecision.rows; row++)
+          for (int col = 0; col < localPrecision.columns; col++)
+            fullPrecision.put(row + i, col + i, fullPrecision.get(row + i, col + i) + localPrecision.get(row, col));
       }
+      
+      System.out.println(fullPrecision);
+      DoubleMatrix fullCovar = JBlasUtils.inversePositiveMatrix(fullPrecision);
+      System.out.println(fullCovar);
+      
+      for (int i = 0; i < 3; i++)
+        stats.add(new SummaryStatistics());
+      
+      
+      RFSamplerOptions options = new RFSamplerOptions();
+      options.refreshmentMethod = method;
+      options.refreshRate = 0.0001;
+      options.collectRate = 10.0;
+      LocalRFSampler local = new LocalRFSampler(model, options);
+      
+      local.processors.clear();
+      local.processors.add(this);
+      Random rand = new Random(1);
+      local.iterate(rand , 200000, Double.POSITIVE_INFINITY);
+      
+      for (int i = 0; i < 3; i++)
+      {
+        System.out.println(stats.get(i).getVariance());
+        System.out.println(stats.get(i).getMean());
+        Assert.assertEquals(fullCovar.get(i,i), stats.get(i).getVariance(), 0.02);
+        Assert.assertEquals(0.0, stats.get(i).getMean(), 0.02);
+        System.out.println("---");
+      }
+      
+      outerProduct.divi(stats.get(0).getN());
+      System.out.println("Empirical covar matrix");
+      System.out.println(outerProduct);
+    }
   }
   
   public static class ChainModel

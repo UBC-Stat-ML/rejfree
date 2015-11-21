@@ -11,18 +11,14 @@ public class RFSamplerOptions
   
   @Option
   public double collectRate = 1.0;
-
-  @Option
-  public boolean useInformedVelocityUpdate = false;
-
-  @Option
-  public boolean useLocalRefreshment = true;
   
   @Option
-  public boolean restrictVelocityNorm = true;
-
-  @Option
-  public boolean usePartialRefreshment = false;
+  public RefreshmentMethod refreshmentMethod = RefreshmentMethod.LOCAL;
+  
+  public static enum RefreshmentMethod
+  {
+    GLOBAL, LOCAL, RESTRICTED, PARTIAL;
+  }
 
   @Option
   public double alpha = 1.0;

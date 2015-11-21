@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -18,6 +19,7 @@ import org.jblas.DoubleMatrix;
 import com.google.common.base.Stopwatch;
 
 import rejfree.RFSamplerOptions;
+import rejfree.RFSamplerOptions.RefreshmentMethod;
 import rejfree.StaticUtils;
 import rejfree.processors.RayProcessor;
 import bayonet.distributions.Exponential;
@@ -63,13 +65,6 @@ public class LocalRFSampler
     allFactors = new ArrayList<>();
     for (Factor f : model.linearizedFactors())
       allFactors.add((CollisionFactor) f);
-    
-    if (options.usePartialRefreshment && (options.useLocalRefreshment || !options.restrictVelocityNorm))
-      throw new RuntimeException("Partial refreshment currently only works for "
-          + "(localRefresh=false, restrictVelocityNorm=true)");
-    
-    if (options.useInformedVelocityUpdate)
-      throw new RuntimeException("Option not supported in LocalRFSampler");
   }
   
   public void addPointProcessor(Processor processor)
@@ -110,19 +105,30 @@ public class LocalRFSampler
     final int dimensionality = variables.size();
     DoubleMatrix newVelocity = null;
     
-    if      (!rfOptions.usePartialRefreshment && !rfOptions.restrictVelocityNorm)
-      newVelocity = StaticUtils.standardMultivariateNormal(variables.size(), rand);
-    else if (!rfOptions.usePartialRefreshment &&  rfOptions.restrictVelocityNorm)
-      newVelocity = StaticUtils.uniformOnUnitBall(variables.size(), rand);
-    else if ( rfOptions.usePartialRefreshment &&  rfOptions.restrictVelocityNorm)
+    if (initializing)
     {
-      if (initializing)
+      if (rfOptions.refreshmentMethod == RefreshmentMethod.RESTRICTED)
         newVelocity = StaticUtils.uniformOnUnitBall(variables.size(), rand);
       else
-        newVelocity = StaticUtils.partialRefreshmentBetaAngle(currentVelocity(variables), rfOptions.alpha, rfOptions.beta, rand);
+        newVelocity = StaticUtils.standardMultivariateNormal(variables.size(), rand);
     }
     else
-      throw new RuntimeException();
+    {
+      if      (rfOptions.refreshmentMethod == RefreshmentMethod.GLOBAL || 
+          rfOptions.refreshmentMethod == RefreshmentMethod.LOCAL) // this happens at the end of iterate() to force processing everything
+        newVelocity = StaticUtils.standardMultivariateNormal(variables.size(), rand);
+      else if (rfOptions.refreshmentMethod == RefreshmentMethod.RESTRICTED)
+        newVelocity = StaticUtils.uniformOnUnitBall(variables.size(), rand);
+      else if (rfOptions.refreshmentMethod == RefreshmentMethod.PARTIAL)
+      {
+        if (initializing)
+          newVelocity = StaticUtils.uniformOnUnitBall(variables.size(), rand);
+        else
+          newVelocity = StaticUtils.partialRefreshmentBetaAngle(currentVelocity(variables), rfOptions.alpha, rfOptions.beta, rand);
+      }
+      else
+        throw new RuntimeException();
+    }
     
     nRefreshments++;
     nRefreshedVariables += variables.size();
@@ -152,28 +158,28 @@ public class LocalRFSampler
     // sample a factor
     CollisionFactor f = allFactors.get(rand.nextInt(allFactors.size()));
     Collection<?> immediateNeighborVariables = model.neighborLatentVariables(f);
+    
+    if (immediateNeighborVariables.size() == 1)
+    {
+      // ensure irreducibility for cases where some factor is connected to only one factor
+      Set<Object> increasedNeighborhood = new HashSet<>();
+      increasedNeighborhood.addAll(immediateNeighborVariables);
+      
+      CollisionFactor f2 = allFactors.get(rand.nextInt(allFactors.size()));
+      Collection<?> immediateNeighborVariables2 = model.neighborLatentVariables(f2);
+      increasedNeighborhood.addAll(immediateNeighborVariables2);
+      
+      immediateNeighborVariables = increasedNeighborhood;
+    }
+    
     Collection<CollisionFactor> neighborFactors = neighborFactors(immediateNeighborVariables);
     Collection<?> extendedNeighborVariables = neighborVariables(neighborFactors);
     
     nRefreshments++;
     nRefreshedVariables += immediateNeighborVariables.size();
     
-    // compute velocity squared norm
-    double sum = 0.0;
-    if (rfOptions.restrictVelocityNorm)
-      for (Object variable : immediateNeighborVariables)
-      {
-        double currentVComponent = trajectories.get(variable).velocity_t;
-        sum += currentVComponent * currentVComponent;
-      }
-    
-    // sample new velocity vector, rescale it
-    final DoubleMatrix newVelocity = rfOptions.restrictVelocityNorm ? 
-        StaticUtils.uniformOnUnitBall(immediateNeighborVariables.size(), rand) :
-        StaticUtils.standardMultivariateNormal(immediateNeighborVariables.size(), rand);
-    
-    if (rfOptions.restrictVelocityNorm)
-      newVelocity.muli(Math.sqrt(sum));
+    // sample new velocity vector
+    final DoubleMatrix newVelocity = StaticUtils.standardMultivariateNormal(immediateNeighborVariables.size(), rand);
     
     for (Object variable : extendedNeighborVariables)
       updateVariable(variable, refreshmentTime);
@@ -240,7 +246,7 @@ public class LocalRFSampler
       else
       {
         currentTime = nextRefreshmentTime;
-        if (rfOptions.useLocalRefreshment)
+        if (rfOptions.refreshmentMethod == RefreshmentMethod.LOCAL)
           localVelocityRefreshment(rand, nextRefreshmentTime);
         else
           globalVelocityRefreshment(rand, nextRefreshmentTime, false);

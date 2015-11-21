@@ -8,6 +8,7 @@ import org.jblas.DoubleMatrix;
 
 import rejfree.RFSamplerOptions;
 import rejfree.StaticUtils;
+import rejfree.RFSamplerOptions.RefreshmentMethod;
 
 import com.google.common.collect.Lists;
 
@@ -39,6 +40,8 @@ public class GlobalRFSampler
    */
   public GlobalRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition, RFSamplerOptions options)
   {
+    if (options.refreshmentMethod != RefreshmentMethod.GLOBAL && options.refreshmentMethod != RefreshmentMethod.LOCAL)
+      throw new RuntimeException();
     this.energy = energy;
     this.options = options;
     this.currentPosition = initialPosition;
@@ -64,13 +67,6 @@ public class GlobalRFSampler
   {
     double [] min = new LBFGSMinimizer().minimize(energy, new DoubleMatrix(energy.dimension()).data, 1e-2);
     return new DoubleMatrix(min);
-  }
-  private DoubleMatrix _cachedOptimizePosition = null;
-  private DoubleMatrix cachedOptimizePosition()
-  {
-    if (_cachedOptimizePosition == null)
-      _cachedOptimizePosition = optimizePosition(this.energy);
-    return _cachedOptimizePosition;
   }
   
   private DoubleMatrix 
@@ -130,16 +126,7 @@ public class GlobalRFSampler
   private DoubleMatrix refreshVelocity(DoubleMatrix currentPosition,
       DoubleMatrix currentVelocity, Random rand)
   {
-    if (rand.nextBoolean() || !options.useInformedVelocityUpdate)
-      return uniformOnUnitBall(currentVelocity.length, rand);
-    else
-    {
-      DoubleMatrix difference = currentPosition.sub(cachedOptimizePosition());
-      difference.muli(1.0/difference.norm2());
-      if (rand.nextBoolean())
-        difference.muli((-1));
-      return difference;
-    }
+    return uniformOnUnitBall(currentVelocity.length, rand);
   }
 
   private void collectSamples(DoubleMatrix initialPosition,
