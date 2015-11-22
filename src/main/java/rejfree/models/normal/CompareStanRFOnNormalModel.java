@@ -12,8 +12,10 @@ import rejfree.RFSamplerOptions;
 import rejfree.StanUtils;
 import rejfree.StanUtils.StanExecution;
 import rejfree.local.LocalRFRunner;
+import rejfree.local.TrajectoryRay;
 import rejfree.models.normal.NormalChain.NormalChainModel;
-import bayonet.coda.EffectiveSize;
+import rejfree.processors.MomentRayProcessor;
+import rejfree.processors.SaveRaysProcessor;
 import bayonet.rplot.RUtils;
 import blang.variables.RealVariable;
 import briefj.OutputManager;
@@ -127,20 +129,27 @@ public class CompareStanRFOnNormalModel implements Runnable
           
           if (d % variableMonitorInterval == 0)
           {
-            List<Double> samples = isRF 
-                ? runner.saveRaysProcessor.convertToSample(variable, 4.0)
+            List<Double> stanSamples = isRF 
+                ? null //runner.saveRaysProcessor.convertToSample(variable, 0.01)
                 : variableSamplesFromStanOutput.get(stanVarName(d));
             if (recordPartialSums)
-              recordPartialSums(samples, methodName, d, truth);
-            double ess = EffectiveSize.effectiveSize(samples);
-            Results.getGlobalOutputManager().printWrite("essPerSec", 
-                "method", methodName, 
-                "dim", d,
-                "rep", rep,
-                "value", (1000.0*ess/runner.options.maxRunningTimeMilli));
+            {
+              if (isRF)
+                recordPartialSums(runner.saveRaysProcessor, methodName, d, truth, variable, time, rep);
+              else
+                recordPartialSums(stanSamples, methodName, d, truth, time, rep);
+            }
+            
+            // commented because seems very sensitive to sampling rate
+//            double ess = EffectiveSize.effectiveSize(samples);
+//            Results.getGlobalOutputManager().printWrite("essPerSec", 
+//                "method", methodName, 
+//                "dim", d,
+//                "rep", rep,
+//                "value", (1000.0*ess/runner.options.maxRunningTimeMilli));
             
             if (fractionOfTrajectoryToPlot != 0.0)
-              plotTrajectory(samples, output, isRF ? "RF" : "STAN", d);
+              plotTrajectory(isRF ? runner.saveRaysProcessor.convertToSample(variable, 1) : stanSamples, output, isRF ? "RF" : "STAN", d);
           }
         }
       }
@@ -156,6 +165,46 @@ public class CompareStanRFOnNormalModel implements Runnable
       RUtils.callGeneratedRScript("/rejfree/plotTrajectory2.txt", Pair.of(Results.getFileInResultFolder("trajectories.csv"), Results.getFileInResultFolder("trajectories.pdf")));
   }
   
+
+
+
+  private void recordPartialSums(SaveRaysProcessor saveRaysProcessor,
+      String methodName, int d, double truth, RealVariable v, double fullTime, int rep)
+  {
+    List<TrajectoryRay> rays = saveRaysProcessor.samples.get(v);
+    double sumSq = 0.0;
+    double sum = 0.0;
+    final int interval = rays.size() / 100;
+    for (int i = 0; i < rays.size(); i++)  
+    {
+      TrajectoryRay 
+        curRay = rays.get(i),
+        nxtRay = i == rays.size() - 1 ? null : rays.get(i+1);
+      double endTimeForRay = (nxtRay == null ? saveRaysProcessor.totalLength : nxtRay.t);
+      double rayLen = endTimeForRay - curRay.t;
+      sumSq += MomentRayProcessor.indefIntegralForVar (curRay.position_t, curRay.velocity_t, rayLen);
+      sum +=   MomentRayProcessor.indefIntegralForMean(curRay.position_t, curRay.velocity_t, rayLen);
+
+      if (i > 0 && i % interval == 0)
+      {
+        final double curTime = endTimeForRay;
+        double meanEstimate = sum / curTime;
+        final double varEstimate =  sumSq / curTime - (meanEstimate * meanEstimate);
+        double error = Math.abs(truth - varEstimate);
+        Results.getGlobalOutputManager().printWrite("partialSums",
+            "method", methodName,
+            "dim", d,
+            "percent", (i/interval),
+            "rep", rep, 
+            "wallClockTime", (i/interval)*fullTime/100,
+            "absError", error, 
+            "relError", (error/truth), 
+            "truth", truth, 
+            "estimate", varEstimate);
+      }
+    }
+  }
+
   private void plotTrajectory(List<Double> samples, OutputManager output, String method, int d)
   {
     double N = (int) (samples.size() * fractionOfTrajectoryToPlot);
@@ -163,22 +212,32 @@ public class CompareStanRFOnNormalModel implements Runnable
     for (double i = 0; i < nTrajectoryPoints; i++)
       output.write("trajectories", "step", (double) (100 * i * fractionOfTrajectoryToPlot / nTrajectoryPoints), "method", method, "d", d, "value", samples.get((int) (i * N / nTrajectoryPoints)));
   }
+  
 
-  private void recordPartialSums(List<Double> samples, String methodName, int dim, double truth)
+
+  private void recordPartialSums(List<Double> samples, String methodName, int d, double truth, double fullTime, int rep)
   {
     SummaryStatistics stat = new SummaryStatistics();
     int counter = 0;
     final int interval = samples.size() / 100;
-    int percent = 0;
     for (double cur : samples)
     {
       stat.addValue(cur);
       if (counter > 0 && counter % interval == 0)
+      {
+        final double varEstimate =  stat.getVariance();
+        double error = Math.abs(truth - varEstimate);
         Results.getGlobalOutputManager().printWrite("partialSums",
             "method", methodName,
-            "dim", dim,
-            "percent", percent++,
-            "value", (stat.getVariance() - truth) /truth);
+            "dim", d,
+            "percent", (counter/interval),
+            "rep", rep, 
+            "wallClockTime", (counter/interval)*fullTime/100,
+            "absError", error, 
+            "relError", (error/truth), 
+            "truth", truth, 
+            "estimate", varEstimate);
+      }
       counter++;
     }
   }

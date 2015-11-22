@@ -20,8 +20,8 @@ import briefj.CSV;
 
 public class SaveRaysProcessor implements RayProcessor
 {
-  private final Map<RealVariable, List<TrajectoryRay>> samples;
-  private double totalLength = 0.0;
+  public final Map<RealVariable, List<TrajectoryRay>> samples;
+  public double totalLength = 0.0;
   
   public SaveRaysProcessor(Collection<RealVariable> variables)
   {
