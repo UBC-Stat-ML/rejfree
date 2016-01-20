@@ -19,11 +19,16 @@ import static rejfree.StaticUtils.*;
 
 public class GlobalRFSampler
 {
+  public static interface CollisionSolver
+  {
+    public double collisionTime(final DoubleMatrix initialPoint, final DoubleMatrix velocity, DifferentiableFunction energy, final double exponential);
+  }
+  
   /**
    * *Negative* log density of the target distribution.
    */
   private final DifferentiableFunction energy;
-  private final PegasusConvexCollisionSolver solver = new PegasusConvexCollisionSolver();
+  private final CollisionSolver solver;
   private final RFSamplerOptions options;
   
   private List<DoubleMatrix> trajectory = Lists.newArrayList();
@@ -38,14 +43,20 @@ public class GlobalRFSampler
    * 
    * @param energy The negative log density of the target, assumed to be convex
    */
-  public GlobalRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition, RFSamplerOptions options)
+  public GlobalRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition, RFSamplerOptions options, CollisionSolver solver)
   {
     if (options.refreshmentMethod != RefreshmentMethod.GLOBAL && options.refreshmentMethod != RefreshmentMethod.LOCAL)
       throw new RuntimeException();
+    this.solver  = solver;
     this.energy = energy;
     this.options = options;
     this.currentPosition = initialPosition;
     this.currentVelocity = null; 
+  }
+  
+  public GlobalRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition, RFSamplerOptions options)
+  {
+    this(energy, initialPosition, options, new PegasusConvexCollisionSolver());
   }
   
   public GlobalRFSampler(DifferentiableFunction energy, DoubleMatrix initialPosition)

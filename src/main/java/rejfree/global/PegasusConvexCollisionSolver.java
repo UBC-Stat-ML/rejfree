@@ -5,12 +5,13 @@ import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.commons.math3.analysis.solvers.PegasusSolver;
 import org.jblas.DoubleMatrix;
 
+import rejfree.global.GlobalRFSampler.CollisionSolver;
 import bayonet.math.NumericalUtils;
 import bayonet.opt.DifferentiableFunction;
 import bayonet.opt.LBFGSMinimizer;
 import static rejfree.StaticUtils.*;
 
-public class PegasusConvexCollisionSolver
+public class PegasusConvexCollisionSolver implements CollisionSolver
 {
   private final PegasusSolver solver = new PegasusSolver();
   

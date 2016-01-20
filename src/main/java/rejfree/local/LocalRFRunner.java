@@ -35,7 +35,7 @@ public class LocalRFRunner
   public ProbabilityModel model;
   public LocalRFSampler sampler;
   
-  private OutputManager output = Results.getGlobalOutputManager();
+  public OutputManager output = Results.getGlobalOutputManager();
   
   public MomentRayProcessor momentRayProcessor = null;
   public SaveRaysProcessor saveRaysProcessor = null;
@@ -94,12 +94,14 @@ public class LocalRFRunner
     sampler.addPointProcessor(saveSamplesProcessor);
   }
 
+  public Stopwatch watch = null;
   public void run()
   {
     checkInit();
     
-    Stopwatch watch = Stopwatch.createStarted();
+    watch = Stopwatch.createStarted();
     sampler.iterate(options.samplingRandom, options.maxSteps, options.maxTrajectoryLength, options.maxRunningTimeMilli);
+    watch.stop();
     long elapsed = watch.elapsed(TimeUnit.MILLISECONDS);
     
     output.printWrite("general-sampler-diagnostic", 
