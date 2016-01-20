@@ -14,6 +14,7 @@ import bayonet.rplot.PlotLine;
 import blang.annotations.DefineFactor;
 import blang.variables.RealVariable;
 import briefj.opt.Option;
+import briefj.opt.OptionSet;
 import briefj.run.Mains;
 import briefj.run.Results;
 
@@ -27,15 +28,12 @@ public class CompareESSLocalGlobal implements Runnable
   @Option
   public double samplingInterval = 0.1;
 
+  @OptionSet(name = "rf")
+  public LocalRFRunnerOptions options = new LocalRFRunnerOptions();
   
   @Override
   public void run()
   {
-    LocalRFRunnerOptions options = new LocalRFRunnerOptions();
-    options.maxRunningTimeMilli = 5*1000;
-    options.maxSteps = Integer.MAX_VALUE;
-    options.maxTrajectoryLength = Double.POSITIVE_INFINITY;
-    
     List<Double> xs = new ArrayList<>();
     List<Double> ys = new ArrayList<>();
     
