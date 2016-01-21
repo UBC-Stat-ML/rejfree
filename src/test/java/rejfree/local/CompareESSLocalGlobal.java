@@ -10,9 +10,11 @@ import org.apache.commons.math3.stat.regression.SimpleRegression;
 
 import rejfree.models.normal.IsotropicNormal;
 import bayonet.coda.EffectiveSize;
+import bayonet.rplot.PlotHistogram;
 import bayonet.rplot.PlotLine;
 import blang.annotations.DefineFactor;
 import blang.variables.RealVariable;
+import briefj.OutputManager;
 import briefj.opt.Option;
 import briefj.opt.OptionSet;
 import briefj.run.Mains;
@@ -26,7 +28,22 @@ public class CompareESSLocalGlobal implements Runnable
   public boolean useSparse = false;
   
   @Option
-  public double samplingInterval = 0.1;
+  public double samplingInterval = 1;
+  
+  @Option
+  public int minDim = 8;
+  
+  @Option
+  public int maxDim = 1024;
+  
+  @Option
+  public int nRepeatsForSlopeEstimation = 2;
+  
+  @Option
+  public int nRepeatsForSlopeEstimatorVariability = 100;
+  
+  @Option
+  public int nBurnIn = 1;
 
   @OptionSet(name = "rf")
   public LocalRFRunnerOptions options = new LocalRFRunnerOptions();
@@ -34,36 +51,43 @@ public class CompareESSLocalGlobal implements Runnable
   @Override
   public void run()
   {
-    List<Double> xs = new ArrayList<>();
-    List<Double> ys = new ArrayList<>();
-    
-    SimpleRegression reg = new SimpleRegression();
-    for (int dim = 32; dim < 1000000; dim *= 2)
+    List<Double> estimatedSlopes = new ArrayList<>();
+    OutputManager out = Results.getGlobalOutputManager();
+    for (int j = 0; j < nRepeatsForSlopeEstimatorVariability; j++)
     {
-      SummaryStatistics stat = new SummaryStatistics();
-      ModelSpec spec = new ModelSpec(dim, useSparse);
-      for (int i = 0; i < 100; i++)
+      List<Double> xs = new ArrayList<>();
+      List<Double> ys = new ArrayList<>();
+      
+      SimpleRegression reg = new SimpleRegression();
+      for (int dim = minDim; dim <= maxDim; dim *= 2)
       {
-        LocalRFRunner rf = new LocalRFRunner(options);
-        RealVariable monitored = spec.variables.get(0);
-        rf.init(spec);
-        rf.addSaveRaysProcessor(Collections.singleton(monitored));
-        rf.run();
-        List<Double> convertToSample = rf.saveRaysProcessor.convertToSample(monitored, samplingInterval);
-        double ess = EffectiveSize.effectiveSize(convertToSample);
-        long timems = rf.watch.elapsed(TimeUnit.MILLISECONDS);
-        rf.output.printWrite("ess", "ess", ess);
-        double essPerSec = (1000.0*ess/timems);
-        rf.output.printWrite("essPerSec", "dim", dim, "essPerSec", essPerSec, "ess", ess, "timeSec", (timems/1000.0));
-        if (i > 3)
-          stat.addValue(essPerSec);
+        SummaryStatistics stat = new SummaryStatistics();
+        ModelSpec spec = new ModelSpec(dim, useSparse);
+        for (int i = 0; i < nRepeatsForSlopeEstimation; i++)
+        {
+          LocalRFRunner rf = new LocalRFRunner(options);
+          RealVariable monitored = spec.variables.get(0);
+          rf.init(spec);
+          rf.addSaveRaysProcessor(Collections.singleton(monitored));
+          rf.run();
+          List<Double> convertToSample = rf.saveRaysProcessor.convertToSample(monitored, samplingInterval);
+          double ess = EffectiveSize.effectiveSize(convertToSample);
+          long timems = rf.watch.elapsed(TimeUnit.MILLISECONDS);
+          double essPerSec = (1000.0*ess/timems);
+          out.printWrite("essPerSec", "dim", dim, "innerRep", i, "outerRep", j, "essPerSec", essPerSec, "ess", ess, "timeSec", (timems/1000.0));
+          if (i >= nBurnIn)
+            stat.addValue(essPerSec);
+        }
+        double meanEss = stat.getMean();
+        reg.addData(Math.log10(dim), Math.log10(meanEss));
+        xs.add(Math.log10(dim));
+        ys.add(Math.log10(meanEss));
       }
-      double meanEss = stat.getMean();
-      reg.addData(Math.log10(dim), Math.log10(meanEss));
-      xs.add(Math.log10(dim));
-      ys.add(Math.log10(meanEss));
-      System.out.println("slope=" + reg.getSlope());
-      PlotLine.from(xs, ys).toPDF(Results.getFileInResultFolder("essPerSecByDim.pdf"));
+      out.printWrite("fit", "outerRep", j, "slope", reg.getSlope(), "intercept", reg.getIntercept(), "rSquare", reg.getRSquare());
+      PlotLine.from(xs, ys).toPDF(Results.getFileInResultFolder("essPerSecByDim-" + j + ".pdf"));
+      estimatedSlopes.add(reg.getSlope());
+      if (estimatedSlopes.size() > 1)
+        PlotHistogram.from(estimatedSlopes).toPDF(Results.getFileInResultFolder("estimatedSlopes-estimatorSamplingDistribution.pdf"));
     }
   }
   
