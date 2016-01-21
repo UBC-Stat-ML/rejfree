@@ -3,6 +3,7 @@ package rejfree.local;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
@@ -96,7 +97,7 @@ public class CompareESSLocalGlobal implements Runnable
     Mains.instrumentedRun(args, new CompareESSLocalGlobal());
   }
   
-  public class ModelSpec
+  public static class ModelSpec
   {
     public final List<RealVariable> variables = new ArrayList<RealVariable>();
     
@@ -114,6 +115,12 @@ public class CompareESSLocalGlobal implements Runnable
       }
       else
         this.factors.add(new IsotropicNormal(variables));
+    }
+    
+    public void initFromStatio(Random rand)
+    {
+      for (RealVariable var :  variables)
+        var.setValue(rand.nextGaussian());
     }
   }
 }
