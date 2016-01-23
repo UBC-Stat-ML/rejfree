@@ -60,7 +60,7 @@ public class CompareESSLocalGlobal implements Runnable
     options.maxTrajectoryLength = 10000;
     options.maxSteps = Integer.MAX_VALUE;
     options.rfOptions.refreshmentMethod = RefreshmentMethod.GLOBAL;
-    options.rfOptions.refreshRate = 0.1;
+//    options.rfOptions.refreshRate = 0.1;
     
     List<Double> estimatedSlopes = new ArrayList<>();
     OutputManager out = Results.getGlobalOutputManager();
@@ -72,7 +72,7 @@ public class CompareESSLocalGlobal implements Runnable
       SimpleRegression reg = new SimpleRegression();
       for (int dim = minDim; dim <= maxDim; dim *= 2)
       {
-        options.rfOptions.refreshRate /= 2.0;
+//        options.rfOptions.refreshRate /= 2.0;
         SummaryStatistics stat = new SummaryStatistics();
         ModelSpec spec = new ModelSpec(dim, useSparse);
         spec.initFromStatio(initRandom);
