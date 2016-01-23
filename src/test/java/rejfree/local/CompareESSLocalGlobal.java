@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
@@ -18,7 +17,6 @@ import blang.annotations.DefineFactor;
 import blang.variables.RealVariable;
 import briefj.OutputManager;
 import briefj.opt.Option;
-import briefj.opt.OptionSet;
 import briefj.run.Mains;
 import briefj.run.Results;
 
@@ -103,6 +101,7 @@ public class CompareESSLocalGlobal implements Runnable
       if (estimatedSlopes.size() > 1)
         PlotHistogram.from(estimatedSlopes).toPDF(Results.getFileInResultFolder("estimatedSlopes-estimatorSamplingDistribution.pdf"));
     }
+    out.close();
   }
   
   public static void main(String[] args)
