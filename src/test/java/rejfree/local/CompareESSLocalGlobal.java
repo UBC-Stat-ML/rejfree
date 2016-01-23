@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 
+import rejfree.RFSamplerOptions.RefreshmentMethod;
 import rejfree.models.normal.IsotropicNormal;
 import bayonet.coda.EffectiveSize;
 import bayonet.rplot.PlotHistogram;
@@ -29,13 +30,13 @@ public class CompareESSLocalGlobal implements Runnable
   public boolean useSparse = false;
   
   @Option
-  public double samplingInterval = 1;
+  public double samplingInterval = 0.1;
   
   @Option
   public int minDim = 8;
   
   @Option
-  public int maxDim = 1024;
+  public int maxDim = 512;
   
   @Option
   public int nRepeatsForSlopeEstimation = 2;
@@ -45,13 +46,22 @@ public class CompareESSLocalGlobal implements Runnable
   
   @Option
   public int nBurnIn = 1;
+  
+  @Option
+  public Random initRandom = new Random(1);
 
-  @OptionSet(name = "rf")
+//  @OptionSet(name = "rf")
   public LocalRFRunnerOptions options = new LocalRFRunnerOptions();
   
   @Override
   public void run()
   {
+    options.maxRunningTimeMilli = Long.MAX_VALUE;
+    options.maxTrajectoryLength = 10000;
+    options.maxSteps = Integer.MAX_VALUE;
+    options.rfOptions.refreshmentMethod = RefreshmentMethod.GLOBAL;
+    options.rfOptions.refreshRate = 0.1;
+    
     List<Double> estimatedSlopes = new ArrayList<>();
     OutputManager out = Results.getGlobalOutputManager();
     for (int j = 0; j < nRepeatsForSlopeEstimatorVariability; j++)
@@ -62,8 +72,10 @@ public class CompareESSLocalGlobal implements Runnable
       SimpleRegression reg = new SimpleRegression();
       for (int dim = minDim; dim <= maxDim; dim *= 2)
       {
+        options.rfOptions.refreshRate /= 2.0;
         SummaryStatistics stat = new SummaryStatistics();
         ModelSpec spec = new ModelSpec(dim, useSparse);
+        spec.initFromStatio(initRandom);
         for (int i = 0; i < nRepeatsForSlopeEstimation; i++)
         {
           LocalRFRunner rf = new LocalRFRunner(options);
@@ -73,11 +85,12 @@ public class CompareESSLocalGlobal implements Runnable
           rf.run();
           List<Double> convertToSample = rf.saveRaysProcessor.convertToSample(monitored, samplingInterval);
           double ess = EffectiveSize.effectiveSize(convertToSample);
-          long timems = rf.watch.elapsed(TimeUnit.MILLISECONDS);
-          double essPerSec = (1000.0*ess/timems);
-          out.printWrite("essPerSec", "dim", dim, "innerRep", i, "outerRep", j, "essPerSec", essPerSec, "ess", ess, "timeSec", (timems/1000.0));
+//          long timems = rf.watch.elapsed(TimeUnit.MILLISECONDS);
+          double time = rf.sampler.getNCollidedVariables() + rf.sampler.getNRefreshedVariables();  // (1000.0*ess/timems);
+          double essPerTime = ess/time;
+          out.printWrite("essPerSec", "dim", dim, "innerRep", i, "outerRep", j, "essPerTime", essPerTime, "ess", ess, "time", time);
           if (i >= nBurnIn)
-            stat.addValue(essPerSec);
+            stat.addValue(essPerTime);
         }
         double meanEss = stat.getMean();
         reg.addData(Math.log10(dim), Math.log10(meanEss));
@@ -85,7 +98,7 @@ public class CompareESSLocalGlobal implements Runnable
         ys.add(Math.log10(meanEss));
       }
       out.printWrite("fit", "outerRep", j, "slope", reg.getSlope(), "intercept", reg.getIntercept(), "rSquare", reg.getRSquare());
-      PlotLine.from(xs, ys).toPDF(Results.getFileInResultFolder("essPerSecByDim-" + j + ".pdf"));
+      PlotLine.from(xs, ys).toPDF(Results.getFileInResultFolder("essPerTimeByDim-" + j + ".pdf"));
       estimatedSlopes.add(reg.getSlope());
       if (estimatedSlopes.size() > 1)
         PlotHistogram.from(estimatedSlopes).toPDF(Results.getFileInResultFolder("estimatedSlopes-estimatorSamplingDistribution.pdf"));

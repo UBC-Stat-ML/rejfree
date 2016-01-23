@@ -24,4 +24,7 @@ public class LocalRFRunnerOptions
   
   @OptionSet(name = "rfOptions")
   public RFSamplerOptions rfOptions = new RFSamplerOptions();
+
+  @Option
+  public boolean silent = false;
 }

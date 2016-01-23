@@ -104,13 +104,14 @@ public class LocalRFRunner
     watch.stop();
     long elapsed = watch.elapsed(TimeUnit.MILLISECONDS);
     
-    output.printWrite("general-sampler-diagnostic", 
-        "wallClockTimeMilli", elapsed, 
-        "trajectoryLength", sampler.getTrajectoryLength(),
-        "nCollisions", sampler.getNCollisions(),
-        "nCollidedVariables", sampler.getNCollidedVariables(),
-        "nRefreshments", sampler.getNRefreshments(),
-        "nRefreshedVariables", sampler.getNRefreshedVariables());
+    if (!options.silent)
+      output.printWrite("general-sampler-diagnostic", 
+          "wallClockTimeMilli", elapsed, 
+          "trajectoryLength", sampler.getTrajectoryLength(),
+          "nCollisions", sampler.getNCollisions(),
+          "nCollidedVariables", sampler.getNCollidedVariables(),
+          "nRefreshments", sampler.getNRefreshments(),
+          "nRefreshedVariables", sampler.getNRefreshedVariables());
     
     output.flush();
   }

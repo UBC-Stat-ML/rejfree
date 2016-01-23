@@ -25,6 +25,11 @@ public class MomentRayProcessor implements RayProcessor
     return sumSq.getCount(variable) / currentTime - (muBar * muBar);
   }
   
+  public double getSquaredVariableEstimate(RealVariable variable)
+  {
+    return sumSq.getCount(variable) / currentTime;
+  }
+  
   @Override
   public void init(LocalRFSampler sampler) {}
   
