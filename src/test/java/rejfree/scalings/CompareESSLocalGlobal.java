@@ -1,4 +1,4 @@
-package rejfree.local;
+package rejfree.scalings;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -9,6 +9,9 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 
 import rejfree.RFSamplerOptions.RefreshmentMethod;
+import rejfree.local.CollisionFactor;
+import rejfree.local.LocalRFRunner;
+import rejfree.local.LocalRFRunnerOptions;
 import rejfree.models.normal.IsotropicNormal;
 import bayonet.coda.EffectiveSize;
 import bayonet.rplot.PlotHistogram;

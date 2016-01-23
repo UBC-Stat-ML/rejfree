@@ -4,31 +4,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
-import org.apache.commons.math3.optim.univariate.BrentOptimizer;
-import org.apache.commons.math3.optim.univariate.SearchInterval;
-import org.apache.commons.math3.optim.univariate.UnivariateObjectiveFunction;
-import org.apache.commons.math3.optim.univariate.UnivariateOptimizer;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
-import org.apache.commons.math3.stat.regression.SimpleRegression;
-import org.apache.commons.math3.analysis.UnivariateFunction;
 
 import rejfree.RFSamplerOptions.RefreshmentMethod;
-import rejfree.local.CompareESSLocalGlobal;
 import rejfree.local.LocalRFRunner;
 import rejfree.local.LocalRFRunnerOptions;
-import rejfree.local.CompareESSLocalGlobal.ModelSpec;
-import rejfree.models.normal.IsotropicNormal;
+import rejfree.scalings.CompareESSLocalGlobal.ModelSpec;
 import bayonet.coda.EffectiveSize;
-import bayonet.rplot.PlotHistogram;
 import bayonet.rplot.PlotLine;
-import blang.annotations.DefineFactor;
 import blang.variables.RealVariable;
-import briefj.OutputManager;
 import briefj.opt.Option;
-import briefj.opt.OptionSet;
 import briefj.run.Mains;
 import briefj.run.Results;
 

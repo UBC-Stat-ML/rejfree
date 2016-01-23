@@ -8,10 +8,9 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 
 import rejfree.RFSamplerOptions.RefreshmentMethod;
-import rejfree.local.CompareESSLocalGlobal;
-import rejfree.local.CompareESSLocalGlobal.ModelSpec;
 import rejfree.local.LocalRFRunner;
 import rejfree.local.LocalRFRunnerOptions;
+import rejfree.scalings.CompareESSLocalGlobal.ModelSpec;
 import bayonet.rplot.PlotLine;
 import blang.variables.RealVariable;
 import briefj.OutputManager;
@@ -21,7 +20,7 @@ import briefj.run.Results;
 
 
 
-public class ESSTroubleshooting implements Runnable
+public class ScalingWithNewESSEstimator implements Runnable
 {
 
   @Option
@@ -44,7 +43,7 @@ public class ESSTroubleshooting implements Runnable
 
   public static void main(String [] args)
   {
-    Mains.instrumentedRun(args, new ESSTroubleshooting());
+    Mains.instrumentedRun(args, new ScalingWithNewESSEstimator());
   }
     
   @Override

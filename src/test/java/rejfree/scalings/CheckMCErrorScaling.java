@@ -1,4 +1,4 @@
-package rejfree.local;
+package rejfree.scalings;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,7 +7,9 @@ import java.util.Random;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 
-import rejfree.local.CompareESSLocalGlobal.ModelSpec;
+import rejfree.local.LocalRFRunner;
+import rejfree.local.LocalRFRunnerOptions;
+import rejfree.scalings.CompareESSLocalGlobal.ModelSpec;
 import bayonet.rplot.PlotLine;
 import blang.variables.RealVariable;
 import briefj.OutputManager;
