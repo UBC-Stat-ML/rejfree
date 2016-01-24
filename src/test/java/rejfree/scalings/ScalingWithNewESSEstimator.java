@@ -65,7 +65,7 @@ public class ScalingWithNewESSEstimator implements Runnable
       double ess = L / autoCorEstimate.getMean();
       double autoCorStdError = autoCorEstimate.getStandardDeviation() / Math.sqrt(nReplicates);
       double essPerTime = ess/time;
-      out.printWrite("essPerSec", "dim", dim, "essPerTime", essPerTime, "ess", ess, "autoCor", autoCorEstimate.getMean(), "essStdError", autoCorStdError, "time", time);
+      out.printWrite("essPerSec", "dim", dim, "essPerTime", essPerTime, "ess", ess, "autoCor", autoCorEstimate.getMean(), "autoCorStdError", autoCorStdError, "time", time);
       double y = Math.log10(essPerTime);
       
       reg.addData(x, y);
