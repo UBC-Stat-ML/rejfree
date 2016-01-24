@@ -31,7 +31,7 @@ import briefj.run.Results;
 
 
 
-public class CompareESSLocalGlobal implements Runnable
+public class EstimateESSByDimensionality implements Runnable
 {
   @Option
   public boolean useSparse = false;
@@ -76,7 +76,7 @@ public class CompareESSLocalGlobal implements Runnable
   {
     GLOBAL_BPS {
       @Override
-      public Pair<Double, Double> measureESSAndTime(CompareESSLocalGlobal instance, int dim)
+      public Pair<Double, Double> measureESSAndTime(EstimateESSByDimensionality instance, int dim)
       {
         LocalRFRunnerOptions options = new LocalRFRunnerOptions();
         options.maxRunningTimeMilli = Long.MAX_VALUE;
@@ -104,7 +104,7 @@ public class CompareESSLocalGlobal implements Runnable
 
       @Override
       public Pair<Double, Double> measureESSAndTime(
-          CompareESSLocalGlobal instance, int dim)
+          EstimateESSByDimensionality instance, int dim)
       {
         IsotropicNormalHMCEnergy target = new IsotropicNormalHMCEnergy();
         double epsilon =
@@ -128,7 +128,7 @@ public class CompareESSLocalGlobal implements Runnable
       }
       
     };
-    public abstract Pair<Double,Double> measureESSAndTime(CompareESSLocalGlobal instance, int dim);
+    public abstract Pair<Double,Double> measureESSAndTime(EstimateESSByDimensionality instance, int dim);
   }
   
   public static class IsotropicNormalHMCEnergy implements MultiVariateObj, Objective
@@ -189,7 +189,7 @@ public class CompareESSLocalGlobal implements Runnable
   
   public static void main(String[] args)
   {
-    Mains.instrumentedRun(args, new CompareESSLocalGlobal());
+    Mains.instrumentedRun(args, new EstimateESSByDimensionality());
   }
   
   public static class ModelSpec

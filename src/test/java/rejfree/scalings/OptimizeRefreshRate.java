@@ -10,7 +10,7 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import rejfree.RFSamplerOptions.RefreshmentMethod;
 import rejfree.local.LocalRFRunner;
 import rejfree.local.LocalRFRunnerOptions;
-import rejfree.scalings.CompareESSLocalGlobal.ModelSpec;
+import rejfree.scalings.EstimateESSByDimensionality.ModelSpec;
 import bayonet.coda.EffectiveSize;
 import bayonet.rplot.PlotLine;
 import blang.variables.RealVariable;
@@ -45,7 +45,7 @@ public class OptimizeRefreshRate implements Runnable
     options.rfOptions.refreshmentMethod = RefreshmentMethod.RESTRICTED;
     
 //    OutputManager out = Results.getGlobalOutputManager();
-    spec = new CompareESSLocalGlobal.ModelSpec(dim, false);
+    spec = new EstimateESSByDimensionality.ModelSpec(dim, false);
         
     
     List<Double> ys = new ArrayList<>();

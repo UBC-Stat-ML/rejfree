@@ -10,7 +10,7 @@ import org.apache.commons.math3.stat.regression.SimpleRegression;
 import rejfree.RFSamplerOptions.RefreshmentMethod;
 import rejfree.local.LocalRFRunner;
 import rejfree.local.LocalRFRunnerOptions;
-import rejfree.scalings.CompareESSLocalGlobal.ModelSpec;
+import rejfree.scalings.EstimateESSByDimensionality.ModelSpec;
 import bayonet.rplot.PlotLine;
 import blang.variables.RealVariable;
 import briefj.OutputManager;
@@ -90,7 +90,7 @@ public class ScalingWithNewESSEstimator implements Runnable
     
     double referenceVariance = order == 1 ? 1.0 : 2.0;
     
-    ModelSpec spec = new CompareESSLocalGlobal.ModelSpec(dim, false);
+    ModelSpec spec = new EstimateESSByDimensionality.ModelSpec(dim, false);
     LocalRFRunnerOptions options = new LocalRFRunnerOptions();
     options.samplingRandom = rand;
     options.maxRunningTimeMilli = Long.MAX_VALUE;

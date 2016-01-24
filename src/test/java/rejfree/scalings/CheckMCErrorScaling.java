@@ -9,7 +9,7 @@ import org.apache.commons.math3.stat.regression.SimpleRegression;
 
 import rejfree.local.LocalRFRunner;
 import rejfree.local.LocalRFRunnerOptions;
-import rejfree.scalings.CompareESSLocalGlobal.ModelSpec;
+import rejfree.scalings.EstimateESSByDimensionality.ModelSpec;
 import bayonet.rplot.PlotLine;
 import blang.variables.RealVariable;
 import briefj.OutputManager;
@@ -58,7 +58,7 @@ public class CheckMCErrorScaling implements Runnable
     options.maxSteps = Integer.MAX_VALUE;
     options.maxTrajectoryLength = N;
     SummaryStatistics mcErrorStatistics = new SummaryStatistics();
-    ModelSpec spec = new CompareESSLocalGlobal.ModelSpec(dim, useSparse);
+    ModelSpec spec = new EstimateESSByDimensionality.ModelSpec(dim, useSparse);
     spec.initFromStatio(initRandom);
     for (int i = 0; i < nRepeats; i++)
     {
