@@ -41,13 +41,13 @@ public class CompareESSLocalGlobal implements Runnable
   public int maxDim = 512;
   
   @Option
-  public int nRepeatsForSlopeEstimation = 2;
+  public int nRepeatsForSlopeEstimation = 1;
   
   @Option
   public int nRepeatsForSlopeEstimatorVariability = 100;
   
   @Option
-  public int nBurnIn = 1;
+  public int nBurnIn = 0;
   
   @Option
   public Random initRandom = new Random(1);
