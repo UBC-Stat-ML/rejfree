@@ -26,7 +26,6 @@ import blang.annotations.DefineFactor;
 import blang.variables.RealVariable;
 import briefj.OutputManager;
 import briefj.opt.Option;
-import briefj.opt.OptionSet;
 import briefj.run.Mains;
 import briefj.run.Results;
 
@@ -56,23 +55,41 @@ public class CompareESSLocalGlobal implements Runnable
   public int nBurnIn = 0;
   
   @Option
+  public boolean randomizeHMCPathLength = false;
+  
+  @Option
   public Random initRandom = new Random(1);
 
-  @OptionSet(name = "rf")
-  public LocalRFRunnerOptions options = new LocalRFRunnerOptions();
+  @Option
+  public Random samplingRandom = new Random(1);
   
   @Option
   public SamplingMethod method = SamplingMethod.GLOBAL_BPS;
-  
+
+  @Option
+  public RefreshmentMethod refreshmentMethod = RefreshmentMethod.GLOBAL;
+
+  @Option
+  public double refreshRate = 1.0;
+
   public static enum SamplingMethod
   {
     GLOBAL_BPS {
       @Override
       public Pair<Double, Double> measureESSAndTime(CompareESSLocalGlobal instance, int dim)
       {
+        LocalRFRunnerOptions options = new LocalRFRunnerOptions();
+        options.maxRunningTimeMilli = Long.MAX_VALUE;
+        options.maxTrajectoryLength = 10000;
+        options.maxSteps = Integer.MAX_VALUE;
+        options.rfOptions.collectRate = 0.0;
+        options.rfOptions.refreshmentMethod = instance.refreshmentMethod;
+        options.rfOptions.refreshRate = instance.refreshRate;
+        options.samplingRandom = instance.samplingRandom;
+        
         ModelSpec spec = new ModelSpec(dim, instance.useSparse);
         spec.initFromStatio(instance.initRandom);
-        LocalRFRunner rf = new LocalRFRunner(instance.options);
+        LocalRFRunner rf = new LocalRFRunner(options);
         RealVariable monitored = spec.variables.get(0);
         rf.init(spec);
         rf.addSaveRaysProcessor(Collections.singleton(monitored));
@@ -93,7 +110,7 @@ public class CompareESSLocalGlobal implements Runnable
         double epsilon =
             Math.pow(2,   -5.0/4.0) *  // to have d=2 corresponding to epsilon = 1/2
             Math.pow(dim, -1.0/4.0); // from Radford Neal's HMC tutorial asymptotics
-        int l = (int) (10.0 * 1.0 / epsilon);
+        int l = (int) (5.0 * 1.0 / epsilon);
         DoubleMatrix sample = new DoubleMatrix(dim);
         for (int i = 0; i < dim; i++)
           sample.put(i, instance.initRandom.nextGaussian());
@@ -101,12 +118,12 @@ public class CompareESSLocalGlobal implements Runnable
         int nIters = 10000;
         for (int i = 0 ; i < nIters; i++) 
         {
-          DataStruct result = hmc.HMC.doIter(instance.options.samplingRandom, l, epsilon, sample, target, target, false);
+          DataStruct result = hmc.HMC.doIter(instance.samplingRandom, l, epsilon, sample, target, target, instance.randomizeHMCPathLength);
           sample = result.next_q;
           samples.add(sample.get(0));
         }
         double ess = EffectiveSize.effectiveSize(samples);
-        double time = dim * nIters * l; 
+        double time = dim * nIters * (instance.randomizeHMCPathLength ? l/2.0 : l); 
         return Pair.of(ess, time);
       }
       
@@ -133,12 +150,6 @@ public class CompareESSLocalGlobal implements Runnable
   @Override
   public void run()
   {
-    options.maxRunningTimeMilli = Long.MAX_VALUE;
-    options.maxTrajectoryLength = 10000;
-    options.maxSteps = Integer.MAX_VALUE;
-    options.rfOptions.collectRate = 0.0;
-    options.rfOptions.refreshmentMethod = RefreshmentMethod.GLOBAL;
-    
     List<Double> estimatedSlopes = new ArrayList<>();
     OutputManager out = Results.getGlobalOutputManager();
     for (int j = 0; j < nRepeatsForSlopeEstimatorVariability; j++)
