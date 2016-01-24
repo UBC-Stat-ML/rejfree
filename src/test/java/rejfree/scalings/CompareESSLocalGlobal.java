@@ -1,18 +1,24 @@
 package rejfree.scalings;
 
+import hmc.DataStruct;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
+import org.jblas.DoubleMatrix;
 
 import rejfree.RFSamplerOptions.RefreshmentMethod;
 import rejfree.local.CollisionFactor;
 import rejfree.local.LocalRFRunner;
 import rejfree.local.LocalRFRunnerOptions;
 import rejfree.models.normal.IsotropicNormal;
+import utils.MultiVariateObj;
+import utils.Objective;
 import bayonet.coda.EffectiveSize;
 import bayonet.rplot.PlotHistogram;
 import bayonet.rplot.PlotLine;
@@ -55,14 +61,83 @@ public class CompareESSLocalGlobal implements Runnable
   @OptionSet(name = "rf")
   public LocalRFRunnerOptions options = new LocalRFRunnerOptions();
   
+  @Option
+  public SamplingMethod method = SamplingMethod.GLOBAL_BPS;
+  
+  public static enum SamplingMethod
+  {
+    GLOBAL_BPS {
+      @Override
+      public Pair<Double, Double> measureESSAndTime(CompareESSLocalGlobal instance, int dim)
+      {
+        ModelSpec spec = new ModelSpec(dim, instance.useSparse);
+        spec.initFromStatio(instance.initRandom);
+        LocalRFRunner rf = new LocalRFRunner(instance.options);
+        RealVariable monitored = spec.variables.get(0);
+        rf.init(spec);
+        rf.addSaveRaysProcessor(Collections.singleton(monitored));
+        rf.run();
+        List<Double> convertToSample = rf.saveRaysProcessor.convertToSample(monitored, instance.samplingInterval);
+        double ess = EffectiveSize.effectiveSize(convertToSample);
+        double time = rf.sampler.getNCollidedVariables() + rf.sampler.getNRefreshedVariables(); 
+        return Pair.of(ess, time);
+      }
+    }, 
+    HMC {
+
+      @Override
+      public Pair<Double, Double> measureESSAndTime(
+          CompareESSLocalGlobal instance, int dim)
+      {
+        IsotropicNormalHMCEnergy target = new IsotropicNormalHMCEnergy();
+        double epsilon =
+            Math.pow(2,   -5.0/4.0) *  // to have d=2 corresponding to epsilon = 1/2
+            Math.pow(dim, -1.0/4.0); // from Radford Neal's HMC tutorial asymptotics
+        int l = (int) (10.0 * 1.0 / epsilon);
+        DoubleMatrix sample = new DoubleMatrix(dim);
+        for (int i = 0; i < dim; i++)
+          sample.put(i, instance.initRandom.nextGaussian());
+        List<Double> samples = new ArrayList<>();
+        int nIters = 10000;
+        for (int i = 0 ; i < nIters; i++) 
+        {
+          DataStruct result = hmc.HMC.doIter(instance.options.samplingRandom, l, epsilon, sample, target, target, false);
+          sample = result.next_q;
+          samples.add(sample.get(0));
+        }
+        double ess = EffectiveSize.effectiveSize(samples);
+        double time = dim * nIters * l; 
+        return Pair.of(ess, time);
+      }
+      
+    };
+    public abstract Pair<Double,Double> measureESSAndTime(CompareESSLocalGlobal instance, int dim);
+  }
+  
+  public static class IsotropicNormalHMCEnergy implements MultiVariateObj, Objective
+  {
+  
+    @Override
+    public double functionValue(DoubleMatrix point)
+    {
+      return + 0.5 * point.dot(point); 
+    }
+  
+    @Override
+    public DoubleMatrix mFunctionValue(DoubleMatrix vec)
+    {
+      return vec;
+    }
+  }
+  
   @Override
   public void run()
   {
     options.maxRunningTimeMilli = Long.MAX_VALUE;
     options.maxTrajectoryLength = 10000;
     options.maxSteps = Integer.MAX_VALUE;
+    options.rfOptions.collectRate = 0.0;
     options.rfOptions.refreshmentMethod = RefreshmentMethod.GLOBAL;
-//    options.rfOptions.refreshRate = 0.1;
     
     List<Double> estimatedSlopes = new ArrayList<>();
     OutputManager out = Results.getGlobalOutputManager();
@@ -74,21 +149,14 @@ public class CompareESSLocalGlobal implements Runnable
       SimpleRegression reg = new SimpleRegression();
       for (int dim = minDim; dim <= maxDim; dim *= 2)
       {
-//        options.rfOptions.refreshRate /= 2.0;
         SummaryStatistics stat = new SummaryStatistics();
-        ModelSpec spec = new ModelSpec(dim, useSparse);
-        spec.initFromStatio(initRandom);
+        
         for (int i = 0; i < nRepeatsForSlopeEstimation; i++)
         {
-          LocalRFRunner rf = new LocalRFRunner(options);
-          RealVariable monitored = spec.variables.get(0);
-          rf.init(spec);
-          rf.addSaveRaysProcessor(Collections.singleton(monitored));
-          rf.run();
-          List<Double> convertToSample = rf.saveRaysProcessor.convertToSample(monitored, samplingInterval);
-          double ess = EffectiveSize.effectiveSize(convertToSample);
-//          long timems = rf.watch.elapsed(TimeUnit.MILLISECONDS);
-          double time = rf.sampler.getNCollidedVariables() + rf.sampler.getNRefreshedVariables();  // (1000.0*ess/timems);
+          Pair<Double,Double> essAndTime = method.measureESSAndTime(this, dim);
+          double ess = essAndTime.getLeft();
+          double time =essAndTime.getRight();
+          
           double essPerTime = ess/time;
           out.printWrite("essPerSec", "dim", dim, "innerRep", i, "outerRep", j, "essPerTime", essPerTime, "ess", ess, "time", time);
           if (i >= nBurnIn)
