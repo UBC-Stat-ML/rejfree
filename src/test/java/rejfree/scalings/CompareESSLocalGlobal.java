@@ -20,6 +20,7 @@ import blang.annotations.DefineFactor;
 import blang.variables.RealVariable;
 import briefj.OutputManager;
 import briefj.opt.Option;
+import briefj.opt.OptionSet;
 import briefj.run.Mains;
 import briefj.run.Results;
 
@@ -51,7 +52,7 @@ public class CompareESSLocalGlobal implements Runnable
   @Option
   public Random initRandom = new Random(1);
 
-//  @OptionSet(name = "rf")
+  @OptionSet(name = "rf")
   public LocalRFRunnerOptions options = new LocalRFRunnerOptions();
   
   @Override
