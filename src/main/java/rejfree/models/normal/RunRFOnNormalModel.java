@@ -1,11 +1,16 @@
 package rejfree.models.normal;
 
+
+import java.util.List;
+
 import org.jblas.DoubleMatrix;
 import org.junit.Test;
 
+import rejfree.PlotTrajectory;
 import rejfree.local.LocalRFRunner;
 import rejfree.local.LocalRFRunnerOptions;
 import rejfree.models.normal.NormalChain.NormalChainModel;
+import rejfree.processors.LocAtCollisionsProcessor;
 import bayonet.coda.EffectiveSize;
 import blang.variables.RealVariable;
 import briefj.OutputManager;
@@ -26,6 +31,12 @@ public class RunRFOnNormalModel implements Runnable
   
   @Option
   public int nRepeats = 100;
+  
+  @Option
+  public int nColToPlot = 0;
+  
+  @Option
+  public double plotBound = 3;
   
   private NormalChain chain;
 
@@ -51,7 +62,21 @@ public class RunRFOnNormalModel implements Runnable
       runner.init(modelSpec);
       runner.addMomentRayProcessor();
       runner.addSaveAllRaysProcessor();
+      
+      LocAtCollisionsProcessor lcp = new LocAtCollisionsProcessor(modelSpec.variables.get(0), modelSpec.variables.get(1));
+      if (nColToPlot > 0)
+        runner.sampler.addRayProcessor(lcp);
+      
       runner.run();
+      
+      if (nColToPlot > 0)
+      {
+        List<DoubleMatrix> list = lcp.locationsAtCollisions;
+        PlotTrajectory plot = PlotTrajectory.fromFirstTwoDimensions(list.subList(0, Math.min(list.size(), nColToPlot)));
+        plot.xBounds = new double[]{-plotBound,plotBound};
+        plot.yBounds = new double[]{-plotBound,plotBound};
+        plot.toPDF(Results.getFileInResultFolder("traj-" + rep + ".pdf"));
+      }
       
       RealVariable aVar = modelSpec.variables.get(3);
       double rfESS = EffectiveSize.effectiveSize(runner.saveRaysProcessor.convertToSample(aVar, 4.0));
