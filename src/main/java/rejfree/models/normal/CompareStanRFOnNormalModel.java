@@ -244,7 +244,7 @@ public class CompareStanRFOnNormalModel implements Runnable
 
   public static final String VAR_NAME = "x";
   
-  private String stanVarName(int d)
+  public static String stanVarName(int d)
   {
     return VAR_NAME + "." + (d+1);
   }
