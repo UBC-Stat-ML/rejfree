@@ -1,8 +1,10 @@
 package rejfree.scalings;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
 
 import rejfree.StanUtils;
@@ -29,7 +31,7 @@ public class EstimateESSByDimensionality2 implements Runnable
   @Option
   public int maxDim = 512;
 
-  @Option 
+  @OptionSet(name = "model")
   public NormalChainOptions options = new NormalChainOptions();
   
   @Option
@@ -37,8 +39,6 @@ public class EstimateESSByDimensionality2 implements Runnable
   
   @OptionSet(name = "stan")
   public StanUtils.StanOptions stanOptions = new StanUtils.StanOptions();
-  
-  private static int dimToInspect = 1;
   
   public static enum SamplingMethod
   {
@@ -69,7 +69,7 @@ public class EstimateESSByDimensionality2 implements Runnable
     StanSampler(boolean useOpt) { this.useOptimalSettings = useOpt; }
     
     @Override
-    public List<Double> computeSamples()
+    public Collection<List<Double>> computeSamples()
     {
       ran = true;
       if (useOptimalSettings)
@@ -91,7 +91,7 @@ public class EstimateESSByDimensionality2 implements Runnable
       stanExec.addInit(CompareStanRFOnNormalModel.VAR_NAME, exactSample);
       stanExec.run();
       Map<String, List<Double>> stanOutput = stanExec.variableSamplesFromStanOutput();
-      return stanOutput.get(CompareStanRFOnNormalModel.stanVarName(dimToInspect));
+      return stanOutput.values();
     }
 
     @Override
@@ -115,7 +115,7 @@ public class EstimateESSByDimensionality2 implements Runnable
   
   public static interface SamplingMethodImplementation 
   {
-    public List<Double> computeSamples();
+    public Collection<List<Double>> computeSamples();
     
     public double computeCost_nLocalGradientEvals();
   }
@@ -135,9 +135,39 @@ public class EstimateESSByDimensionality2 implements Runnable
       exactSample = chain.exactSample();
       modelSpec = chain.new NormalChainModel(exactSample.data);
       SamplingMethodImplementation sampler = method.newInstance(this);
-      List<Double> samples = sampler.computeSamples();
-      final double ess = EffectiveSize.effectiveSize(samples);
-      out.printWrite("essByDim", "dim", dim, "ess", ess);
+      Collection<List<Double>> samples = sampler.computeSamples();
+      SummaryStatistics essStats = new SummaryStatistics();
+      SummaryStatistics relativeMeanEstimateErrorStats = new SummaryStatistics();
+      SummaryStatistics relativeSDEstimateErrorStats = new SummaryStatistics();
+      int dimIndex = 0;
+      for (List<Double> univariateSamples : samples)
+      {
+        final double ess = EffectiveSize.effectiveSize(univariateSamples);
+        essStats.addValue( ess );
+        
+        final double trueMean = 0.0;
+        final double trueSD = Math.sqrt(chain.covarMatrix.get(dimIndex, dimIndex));
+        SummaryStatistics univariateSummary = new SummaryStatistics();
+        for (double univariateSample : univariateSamples)
+          univariateSummary.addValue(univariateSample);
+        final double estimatedMean = univariateSummary.getMean();
+        final double estimatedSD = univariateSummary.getStandardDeviation();
+        final double relativeMeanEstimateError = Math.abs(trueMean - estimatedMean) / trueSD;
+        final double relativeSDEstimateError = Math.abs(trueSD - estimatedSD) / trueSD;
+        relativeMeanEstimateErrorStats.addValue( relativeMeanEstimateError );
+        relativeSDEstimateErrorStats.addValue( relativeSDEstimateError );
+
+        dimIndex++;
+      }
+      final double nLocalGradEvals = sampler.computeCost_nLocalGradientEvals();
+      out.printWrite("statisticsByDim", 
+          "dim", dim, 
+          "avgESS", essStats.getMean(), 
+          "minESS", essStats.getMin(), 
+          "maxESS", essStats.getMax(), 
+          "nLocalGradEvals", nLocalGradEvals,
+          "avgRelativeMeanEstimateError", relativeMeanEstimateErrorStats.getMean(),
+          "avgRelativeSDEstimateErrorStats", relativeSDEstimateErrorStats.getMean());
     }
     out.close();
   }

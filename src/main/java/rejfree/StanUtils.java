@@ -52,6 +52,9 @@ public class StanUtils
     public double stepSize = 1.0;
     
     @Option
+    public boolean verbose = false;
+    
+    @Option
     public double stepSizeJitter = 0.0;
     
     @Option
@@ -125,10 +128,10 @@ public class StanUtils
       boolean hasInit = !initString.toString().isEmpty();
       File initFile = hasInit ? createInit() : null;
       File stanProgram = stanProgram();
-      System.out.println("Running stan exec cached at:" + stanProgram.getAbsolutePath());
-      return Command.byPath(stanProgram)
+      if (options.verbose)
+        System.out.println("Running stan exec cached at:" + stanProgram.getAbsolutePath());
+      Command result =  Command.byPath(stanProgram)
         .ranIn(Results.getResultFolder())
-        .withStandardOutMirroring()
         .withArgs(
             "sample " +
               "num_samples=" + options.nStanIters + " " +
@@ -146,6 +149,9 @@ public class StanUtils
               "file=" + output.getAbsolutePath() + " " +
             (hasInit ? "init=" + initFile.getAbsolutePath() : "") + " " +
             "random seed=" + options.rand.nextInt());
+      if (options.verbose)
+        result = result.withStandardOutMirroring();
+      return result;
     }
     
     public Map<String,SummaryStatistics> stanOutputToSummaryStatistics()
