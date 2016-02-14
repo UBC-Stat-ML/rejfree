@@ -47,6 +47,15 @@ public class StanUtils
 
     @Option
     public boolean useDiagMetric = true;
+
+    @Option
+    public double stepSize = 1.0;
+    
+    @Option
+    public double stepSizeJitter = 0.0;
+    
+    @Option
+    public double intTime = 2.0 * Math.PI;
   }
   
   public static class StanExecution
@@ -124,9 +133,14 @@ public class StanUtils
             "sample " +
               "num_samples=" + options.nStanIters + " " +
               "num_warmup=" + options.nStanWarmUps + " " +
+              "adapt " +
+                "engaged=" + (options.nStanWarmUps == 0 ? "0" : "1") + " " +
               "algorithm=hmc " +
                 "engine=" + (options.useNuts ? "nuts" : "static") + " " +
+                  (options.useNuts ? "" : "int_time=" + options.intTime) + " " +
                 "metric=" + (options.useDiagMetric  ? "diag_e" : "unit_e") + " " +
+                "stepsize=" + options.stepSize + " " + 
+                "stepsize_jitter=" + options.stepSizeJitter + " " + 
             (hasDataFile() ? "data file=" + dataFile.getAbsolutePath() + " " : "") + 
             "output " +
               "file=" + output.getAbsolutePath() + " " +
