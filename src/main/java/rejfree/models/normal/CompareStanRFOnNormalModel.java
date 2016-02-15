@@ -107,7 +107,7 @@ public class CompareStanRFOnNormalModel implements Runnable
       runner.options.maxRunningTimeMilli = time;
       runner.run();
       
-      Map<String, List<Double>> variableSamplesFromStanOutput = needStan ? stanExec.variableSamplesFromStanOutput() : null;
+      Map<String, List<Double>> variableSamplesFromStanOutput = needStan ? stanExec.parsedStanOutput() : null;
       for (int d = 0; d < modelSpec.variables.size(); d++)
       {
         RealVariable variable = modelSpec.variables.get(d);

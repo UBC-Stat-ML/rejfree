@@ -1,5 +1,6 @@
 package rejfree.scalings;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -9,7 +10,6 @@ import org.jblas.DoubleMatrix;
 
 import rejfree.StanUtils;
 import rejfree.StanUtils.StanExecution;
-import rejfree.StanUtils.StanOptions;
 import rejfree.models.normal.CompareStanRFOnNormalModel;
 import rejfree.models.normal.NormalChain;
 import rejfree.models.normal.NormalChainOptions;
@@ -72,9 +72,10 @@ public class EstimateESSByDimensionality2 implements Runnable
     public Collection<List<Double>> computeSamples()
     {
       ran = true;
+      final int dim = chain.dim();
       if (useOptimalSettings)
       {
-        int dim = chain.dim();
+        
         double epsilon =
             Math.pow(2,   -5.0/4.0) *  // to have d=2 corresponding to epsilon = 1/2
             Math.pow(dim, -1.0/4.0); // from Radford Neal's HMC tutorial asymptotics
@@ -90,8 +91,12 @@ public class EstimateESSByDimensionality2 implements Runnable
       StanExecution stanExec = new StanExecution(chain.stanModel(), stanOptions);
       stanExec.addInit(CompareStanRFOnNormalModel.VAR_NAME, exactSample);
       stanExec.run();
-      Map<String, List<Double>> stanOutput = stanExec.variableSamplesFromStanOutput();
-      return stanOutput.values();
+      Map<String, List<Double>> stanOutput = stanExec.parsedStanOutput();
+      
+      Collection<List<Double>> result = new ArrayList<List<Double>>();
+      for (int d = 0; d < dim; d++)
+        result.add(stanOutput.get(CompareStanRFOnNormalModel.stanVarName(d)));
+      return result;
     }
 
     @Override
@@ -120,6 +125,7 @@ public class EstimateESSByDimensionality2 implements Runnable
     public double computeCost_nLocalGradientEvals();
   }
   
+  @SuppressWarnings("unused") // remove once BPS is implemented
   private NormalChainModel modelSpec = null;
   private NormalChain chain = null;
   private DoubleMatrix exactSample = null;

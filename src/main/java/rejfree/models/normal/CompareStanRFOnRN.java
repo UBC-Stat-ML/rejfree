@@ -87,7 +87,7 @@ public class CompareStanRFOnRN implements Runnable
       runner.options.maxRunningTimeMilli = (long) ((double) stanExec.getRunningTimeMilli() * 0.9);
       runner.run();
       
-      Map<String, List<Double>> variableSamplesFromStanOutput = stanExec.variableSamplesFromStanOutput();
+      Map<String, List<Double>> variableSamplesFromStanOutput = stanExec.parsedStanOutput();
       
       double delta = 1.0 / ((double) nVars);
       for (int d = 0; d < modelSpec.variables.size(); d++)

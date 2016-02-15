@@ -164,7 +164,10 @@ public class StanUtils
       return result;
     }
     
-    public Map<String,List<Double>> variableSamplesFromStanOutput()
+    /**
+     * Contains the value of the variable at each iteration and moreover statistics such as acceptance rate, log probab, etc.
+     */
+    public Map<String,List<Double>> parsedStanOutput()
     {
       Map<String,List<Double>> result = new LinkedHashMap<String, List<Double>>();
       for (Map<String,String> sample : BriefIO.readLines(output).indexCSV('#'))
