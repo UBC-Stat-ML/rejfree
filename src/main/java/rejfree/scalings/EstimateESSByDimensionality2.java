@@ -89,7 +89,6 @@ public class EstimateESSByDimensionality2 implements Runnable
         stanOptions.useNuts = false;
         stanOptions.useDiagMetric = false;
         stanOptions.stepSize = epsilon;
-        stanOptions.stepSizeJitter = 0.1;
         stanOptions.intTime = epsilon * l;
       }
       
