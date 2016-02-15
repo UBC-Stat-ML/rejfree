@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
@@ -40,6 +41,9 @@ public class EstimateESSByDimensionality2 implements Runnable
   @OptionSet(name = "stan")
   public StanUtils.StanOptions stanOptions = new StanUtils.StanOptions();
   
+  @Option
+  public Random masterSamplingRandom = new Random(1);
+  
   public static enum SamplingMethod
   {
     STAN_OPTIMAL {
@@ -69,10 +73,11 @@ public class EstimateESSByDimensionality2 implements Runnable
     StanSampler(boolean useOpt) { this.useOptimalSettings = useOpt; }
     
     @Override
-    public Collection<List<Double>> computeSamples()
+    public Collection<List<Double>> computeSamples(Random rand)
     {
       ran = true;
       final int dim = chain.dim();
+      stanOptions.rand = rand;
       if (useOptimalSettings)
       {
         
@@ -120,7 +125,7 @@ public class EstimateESSByDimensionality2 implements Runnable
   
   public static interface SamplingMethodImplementation 
   {
-    public Collection<List<Double>> computeSamples();
+    public Collection<List<Double>> computeSamples(Random rand);
     
     public double computeCost_nLocalGradientEvals();
   }
@@ -141,7 +146,7 @@ public class EstimateESSByDimensionality2 implements Runnable
       exactSample = chain.exactSample();
       modelSpec = chain.new NormalChainModel(exactSample.data);
       SamplingMethodImplementation sampler = method.newInstance(this);
-      Collection<List<Double>> samples = sampler.computeSamples();
+      Collection<List<Double>> samples = sampler.computeSamples(masterSamplingRandom);
       SummaryStatistics essStats = new SummaryStatistics();
       SummaryStatistics relativeMeanEstimateErrorStats = new SummaryStatistics();
       SummaryStatistics relativeSDEstimateErrorStats = new SummaryStatistics();
