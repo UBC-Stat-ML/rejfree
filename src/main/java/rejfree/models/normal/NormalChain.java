@@ -5,8 +5,9 @@ import java.util.List;
 
 import org.apache.commons.math3.distribution.MultivariateNormalDistribution;
 import org.jblas.DoubleMatrix;
-import org.mvel2.templates.TemplateRuntime;
 
+import rejfree.StanUtils.StanExecution;
+import rejfree.StanUtils.StanOptions;
 import rejfree.local.CollisionFactor;
 import bayonet.math.JBlasUtils;
 import blang.annotations.DefineFactor;
@@ -121,9 +122,13 @@ public class NormalChain
     normal.reseedRandomGenerator(options.random.nextLong());
   }
   
-  public String stanModel()
+  public StanExecution stanExecution(StanOptions stanOptions)
   {
-    String template = BriefIO.resourceToString("/rejfree/stanChainTemplate.txt");
-    return (String) TemplateRuntime.eval(template, this);
+    String modelSpec = BriefIO.resourceToString("/rejfree/stanChainTemplate.txt");
+    StanExecution exec = new StanExecution(modelSpec, stanOptions);
+    exec.addData("offDiag", options.offDiag);
+    exec.addData("diag", options.diag);
+    exec.addData("nPairs", options.nPairs);
+    return exec;
   }
 }

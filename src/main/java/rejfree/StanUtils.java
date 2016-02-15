@@ -66,9 +66,10 @@ public class StanUtils
     public final StanOptions options;
     public final String model;
     private long elapsed;
-    private File output;
+    private final File output;
     private boolean ran = false;
-    private StringBuilder initString = new StringBuilder();
+    private final StringBuilder initString = new StringBuilder();
+    private final StringBuilder dataString = new StringBuilder();
     private File dataFile;
       
     public StanExecution(String model, StanOptions options)
@@ -86,15 +87,35 @@ public class StanUtils
     
     public void addInit(String varName, DoubleMatrix values)
     {
-      initString.append(varName + " <- c(");
-      for (int d = 0; d < values.length; d++)
-        initString.append("" + values.get(d) + (d == values.length - 1 ? "" : ","));
-      initString.append(")\n");
+      add(varName, values, initString);
     }
     
-    private boolean hasDataFile()
+    public void addInit(String varName, Number value)
     {
-      return dataFile != null;
+      add(varName, value, initString);
+    }
+    
+    public void addData(String varName, DoubleMatrix values)
+    {
+      add(varName, values, dataString);
+    }
+    
+    public void addData(String varName, Number value)
+    {
+      add(varName, value, dataString);
+    }
+    
+    private static void add(String varName, DoubleMatrix values, StringBuilder toAddTo)
+    {
+      toAddTo.append(varName + " <- c(");
+      for (int d = 0; d < values.length; d++)
+        toAddTo.append("" + values.get(d) + (d == values.length - 1 ? "" : ","));
+      toAddTo.append(")\n");
+    }
+    
+    private static void add(String varName, Number value, StringBuilder toAddTo)
+    {
+      toAddTo.append(varName + " <- " + value + "\n");
     }
 
     private File stanProgram()
@@ -130,6 +151,7 @@ public class StanUtils
       File stanProgram = stanProgram();
       if (options.verbose)
         System.out.println("Running stan exec cached at:" + stanProgram.getAbsolutePath());
+      File dataFile = createData();
       Command result =  Command.byPath(stanProgram)
         .ranIn(Results.getResultFolder())
         .withArgs(
@@ -144,7 +166,7 @@ public class StanUtils
                 "metric=" + (options.useDiagMetric  ? "diag_e" : "unit_e") + " " +
                 "stepsize=" + options.stepSize + " " + 
                 "stepsize_jitter=" + options.stepSizeJitter + " " + 
-            (hasDataFile() ? "data file=" + dataFile.getAbsolutePath() + " " : "") + 
+            (dataFile != null ? "data file=" + dataFile.getAbsolutePath() + " " : "") + 
             "output " +
               "file=" + output.getAbsolutePath() + " " +
             (hasInit ? "init=" + initFile.getAbsolutePath() : "") + " " +
@@ -181,6 +203,18 @@ public class StanUtils
       File temp = BriefFiles.createTempFile();
       BriefIO.write(temp, initString.toString());
       return temp;
+    }
+    
+    private File createData()
+    {
+      if (dataFile == null && dataString.length() == 0)
+        return null;
+      if (dataFile == null)
+        dataFile = BriefFiles.createTempFile();
+      else
+        dataString.append(BriefIO.fileToString(dataFile));
+      BriefIO.write(dataFile, dataString.toString());
+      return dataFile;
     }
   }
 }

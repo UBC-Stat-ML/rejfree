@@ -86,7 +86,7 @@ public class CompareStanRFOnNormalModel implements Runnable
       if (needStan)
       {
         System.out.println("Running Stan to determine running time cap for RF");
-        stanExec = new StanExecution(chain.stanModel(), stanOptions);
+        stanExec = chain.stanExecution(stanOptions);
         stanExec.addInit(VAR_NAME, exactSample);
         stanExec.run();
         stanStatistics = stanExec.stanOutputToSummaryStatistics();

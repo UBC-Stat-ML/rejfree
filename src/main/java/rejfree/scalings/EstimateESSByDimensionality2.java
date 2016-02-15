@@ -93,7 +93,7 @@ public class EstimateESSByDimensionality2 implements Runnable
         stanOptions.intTime = epsilon * l;
       }
       
-      StanExecution stanExec = new StanExecution(chain.stanModel(), stanOptions);
+      StanExecution stanExec = chain.stanExecution(stanOptions);
       stanExec.addInit(CompareStanRFOnNormalModel.VAR_NAME, exactSample);
       stanExec.run();
       Map<String, List<Double>> stanOutput = stanExec.parsedStanOutput();
