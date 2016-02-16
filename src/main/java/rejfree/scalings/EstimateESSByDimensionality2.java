@@ -54,6 +54,14 @@ public class EstimateESSByDimensionality2 implements Runnable
         return instance.new StanSampler(true);
       }
     },
+    STAN {
+      @Override
+      public SamplingMethodImplementation newInstance(
+          EstimateESSByDimensionality2 instance)
+      {
+        return instance.new StanSampler(false);
+      }
+    },
     BPS {
       @Override
       public SamplingMethodImplementation newInstance(
@@ -69,6 +77,7 @@ public class EstimateESSByDimensionality2 implements Runnable
   {
     final boolean useOptimalSettings;
     boolean ran = false;
+    StanExecution stanExec = null;
     
     StanSampler(boolean useOpt) { this.useOptimalSettings = useOpt; }
     
@@ -80,7 +89,6 @@ public class EstimateESSByDimensionality2 implements Runnable
       stanOptions.rand = rand;
       if (useOptimalSettings)
       {
-        
         double epsilon =
             Math.pow(2,   -5.0/4.0) *  // to have d=2 corresponding to epsilon = 1/2
             Math.pow(dim, -1.0/4.0); // from Radford Neal's HMC tutorial asymptotics
@@ -91,15 +99,17 @@ public class EstimateESSByDimensionality2 implements Runnable
         stanOptions.stepSize = epsilon;
         stanOptions.intTime = epsilon * l;
       }
+      else
+        stanOptions.saveWarmUp = true; // needed to compute running time
       
-      StanExecution stanExec = chain.stanExecution(stanOptions);
+      stanExec = chain.stanExecution(stanOptions);
       stanExec.addInit(CompareStanRFOnNormalModel.VAR_NAME, exactSample);
       stanExec.run();
       Map<String, List<Double>> stanOutput = stanExec.parsedStanOutput();
       
       Collection<List<Double>> result = new ArrayList<List<Double>>();
       for (int d = 0; d < dim; d++)
-        result.add(stanOutput.get(CompareStanRFOnNormalModel.stanVarName(d)));
+        result.add(stanOutput.get(CompareStanRFOnNormalModel.stanVarName(d)).subList(stanOptions.nStanWarmUps, stanOptions.nStanWarmUps+stanOptions.nStanIters));
       return result;
     }
 
@@ -109,14 +119,15 @@ public class EstimateESSByDimensionality2 implements Runnable
       if (!ran)
         throw new RuntimeException();
       
+      int dim = chain.dim();
       if (useOptimalSettings)
-      {
-        int dim = chain.dim();
         return stanOptions.nStanIters * (stanOptions.intTime / stanOptions.stepSize) * dim;
-      }
       else
       {
-        throw new RuntimeException(); // see page 12 of the CMD_STAN manual
+        double totalNumberOfLeapFrogs = 0;
+        for (double d : stanExec.parsedStanOutput().get("n_leapfrog__"))
+          totalNumberOfLeapFrogs += d;
+        return totalNumberOfLeapFrogs * dim;
       }
     }
     

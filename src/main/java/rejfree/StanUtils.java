@@ -55,6 +55,9 @@ public class StanUtils
     public boolean verbose = false;
     
     @Option
+    public boolean saveWarmUp = false;
+    
+    @Option
     public double stepSizeJitter = 0.0;
     
     @Option
@@ -158,6 +161,7 @@ public class StanUtils
             "sample " +
               "num_samples=" + options.nStanIters + " " +
               "num_warmup=" + options.nStanWarmUps + " " +
+              "save_warmup=" + (options.saveWarmUp ? "1" : "0") + " " + // could not get this to work
               "adapt " +
                 "engaged=" + (options.nStanWarmUps == 0 ? "0" : "1") + " " +
               "algorithm=hmc " +
@@ -167,7 +171,7 @@ public class StanUtils
                 "stepsize=" + options.stepSize + " " + 
                 "stepsize_jitter=" + options.stepSizeJitter + " " + 
             (dataFile != null ? "data file=" + dataFile.getAbsolutePath() + " " : "") + 
-            "output " +
+            "output " + 
               "file=" + output.getAbsolutePath() + " " +
             (hasInit ? "init=" + initFile.getAbsolutePath() : "") + " " +
             "random seed=" + options.rand.nextInt());
