@@ -69,7 +69,7 @@ public class StanUtils
     public final StanOptions options;
     public final String model;
     private long elapsed;
-    private final File output;
+    public final File output;
     private boolean ran = false;
     private final StringBuilder initString = new StringBuilder();
     private final StringBuilder dataString = new StringBuilder();

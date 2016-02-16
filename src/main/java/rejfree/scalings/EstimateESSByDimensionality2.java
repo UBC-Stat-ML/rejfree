@@ -130,6 +130,12 @@ public class EstimateESSByDimensionality2 implements Runnable
         return totalNumberOfLeapFrogs * dim;
       }
     }
+
+    @Override
+    public void cleanUp()
+    {
+      stanExec.output.delete();
+    }
     
   }
   
@@ -138,6 +144,8 @@ public class EstimateESSByDimensionality2 implements Runnable
     public Collection<List<Double>> computeSamples(Random rand);
     
     public double computeCost_nLocalGradientEvals();
+    
+    public void cleanUp();
   }
   
   @SuppressWarnings("unused") // remove once BPS is implemented
@@ -189,6 +197,8 @@ public class EstimateESSByDimensionality2 implements Runnable
           "nLocalGradEvals", nLocalGradEvals,
           "avgRelativeMeanEstimateError", relativeMeanEstimateErrorStats.getMean(),
           "avgRelativeSDEstimateErrorStats", relativeSDEstimateErrorStats.getMean());
+      
+      sampler.cleanUp();
     }
     out.close();
   }
