@@ -10,6 +10,7 @@ import rejfree.StanUtils.StanExecution;
 import rejfree.StanUtils.StanOptions;
 import rejfree.local.CollisionFactor;
 import bayonet.math.JBlasUtils;
+import bayonet.rplot.PlotLine;
 import blang.annotations.DefineFactor;
 import blang.variables.RealVariable;
 import briefj.BriefIO;
@@ -29,7 +30,7 @@ public class NormalChain
   public int dim() { return options.nPairs + 1; }
   
   private DoubleMatrix fullPrecision;
-  public DoubleMatrix covarMatrix;
+  public  DoubleMatrix covarMatrix;
   private List<DoubleMatrix> pairPrecisions;
   private MultivariateNormalDistribution normal;
   
@@ -130,5 +131,26 @@ public class NormalChain
     exec.addData("diag", options.diag);
     exec.addData("nPairs", options.nPairs);
     return exec;
+  }
+  
+  public static void main(String [] args)
+  {
+    NormalChainOptions options = new NormalChainOptions();
+    options.nPairs = 100;
+    
+    NormalChain chain = new NormalChain(options);
+    
+    List<Double> variances = new ArrayList<>();
+    List<Double> covars = new ArrayList<>();
+    
+    for (int d = 0; d < chain.dim(); d++)
+    {
+      variances.add(chain.covarMatrix.get(d,d));
+      if (d != 0)
+        covars.add(chain.covarMatrix.get(d,d-1));
+    }
+    
+    PlotLine.from(variances).openTemporaryPDF();
+    PlotLine.from(covars).openTemporaryPDF();
   }
 }

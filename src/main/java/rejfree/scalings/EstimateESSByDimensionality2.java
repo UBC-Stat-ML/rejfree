@@ -1,7 +1,6 @@
 package rejfree.scalings;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -13,9 +12,9 @@ import rejfree.StanUtils;
 import rejfree.StanUtils.StanExecution;
 import rejfree.models.normal.CompareStanRFOnNormalModel;
 import rejfree.models.normal.NormalChain;
-import rejfree.models.normal.NormalChainOptions;
 import rejfree.models.normal.NormalChain.NormalChainModel;
-import bayonet.coda.EffectiveSize;
+import rejfree.models.normal.NormalChainOptions;
+import briefj.BriefFiles;
 import briefj.OutputManager;
 import briefj.opt.Option;
 import briefj.opt.OptionSet;
@@ -78,11 +77,12 @@ public class EstimateESSByDimensionality2 implements Runnable
     final boolean useOptimalSettings;
     boolean ran = false;
     StanExecution stanExec = null;
+    Map<String, SummaryStatistics> stanOutSummary = null;
     
     StanSampler(boolean useOpt) { this.useOptimalSettings = useOpt; }
     
     @Override
-    public Collection<List<Double>> computeSamples(Random rand)
+    public void compute(Random rand)
     {
       ran = true;
       final int dim = chain.dim();
@@ -103,18 +103,31 @@ public class EstimateESSByDimensionality2 implements Runnable
         stanOptions.saveWarmUp = true; // needed to compute running time
       
       stanExec = chain.stanExecution(stanOptions);
+      stanExec.output = BriefFiles.createTempFile();
       stanExec.addInit(CompareStanRFOnNormalModel.VAR_NAME, exactSample);
       stanExec.run();
-      Map<String, List<Double>> stanOutput = stanExec.parsedStanOutput();
+      stanOutSummary  = stanExec.stanOutputToSummaryStatistics();
+    }
+    
+    @Override
+    public List<Double> estimates(int power)
+    {
+      if (!ran)
+        throw new RuntimeException();
       
-      Collection<List<Double>> result = new ArrayList<List<Double>>();
-      for (int d = 0; d < dim; d++)
-        result.add(stanOutput.get(CompareStanRFOnNormalModel.stanVarName(d)).subList(stanOptions.nStanWarmUps, stanOptions.nStanWarmUps+stanOptions.nStanIters));
+      if (power != 1 && power != 2)
+        throw new RuntimeException();
+      List<Double> result = new ArrayList<>();
+      for (int d = 0; d < chain.dim(); d++)
+      {
+        SummaryStatistics currentStats = stanOutSummary.get(CompareStanRFOnNormalModel.stanVarName(d));
+        result.add( (power == 1 ? currentStats.getSum() : currentStats.getSumsq()) /currentStats.getN());
+      }
       return result;
     }
 
     @Override
-    public double computeCost_nLocalGradientEvals()
+    public double nLocalGradientEvals()
     {
       if (!ran)
         throw new RuntimeException();
@@ -130,22 +143,13 @@ public class EstimateESSByDimensionality2 implements Runnable
         return totalNumberOfLeapFrogs * dim;
       }
     }
-
-    @Override
-    public void cleanUp()
-    {
-      stanExec.output.delete();
-    }
-    
   }
   
   public static interface SamplingMethodImplementation 
   {
-    public Collection<List<Double>> computeSamples(Random rand);
-    
-    public double computeCost_nLocalGradientEvals();
-    
-    public void cleanUp();
+    public void compute(Random rand);
+    public List<Double> estimates(int power);
+    public double nLocalGradientEvals();
   }
   
   @SuppressWarnings("unused") // remove once BPS is implemented
@@ -157,52 +161,51 @@ public class EstimateESSByDimensionality2 implements Runnable
   public void run()
   {
     OutputManager out = Results.getGlobalOutputManager();
-    for (int dim = minDim; dim <= maxDim; dim *= 2)
+    for (int nDim = minDim; nDim <= maxDim; nDim *= 2)
     {
-      options.nPairs = dim - 1;
+      options.nPairs = nDim - 1;
       chain = new NormalChain(options);
       exactSample = chain.exactSample();
       modelSpec = chain.new NormalChainModel(exactSample.data);
       SamplingMethodImplementation sampler = method.newInstance(this);
-      Collection<List<Double>> samples = sampler.computeSamples(masterSamplingRandom);
-      SummaryStatistics essStats = new SummaryStatistics();
-      SummaryStatistics relativeMeanEstimateErrorStats = new SummaryStatistics();
-      SummaryStatistics relativeSDEstimateErrorStats = new SummaryStatistics();
-      int dimIndex = 0;
-      for (List<Double> univariateSamples : samples)
-      {
-        final double ess = EffectiveSize.effectiveSize(univariateSamples);
-        essStats.addValue( ess );
-        
-        final double trueMean = 0.0;
-        final double trueSD = Math.sqrt(chain.covarMatrix.get(dimIndex, dimIndex));
-        SummaryStatistics univariateSummary = new SummaryStatistics();
-        for (double univariateSample : univariateSamples)
-          univariateSummary.addValue(univariateSample);
-        final double estimatedMean = univariateSummary.getMean();
-        final double estimatedSD = univariateSummary.getStandardDeviation();
-        final double relativeMeanEstimateError = Math.abs(trueMean - estimatedMean) / trueSD;
-        final double relativeSDEstimateError = Math.abs(trueSD - estimatedSD) / trueSD;
-        relativeMeanEstimateErrorStats.addValue( relativeMeanEstimateError );
-        relativeSDEstimateErrorStats.addValue( relativeSDEstimateError );
-
-        dimIndex++;
-      }
-      final double nLocalGradEvals = sampler.computeCost_nLocalGradientEvals();
-      out.printWrite("statisticsByDim", 
-          "dim", dim, 
-          "avgESS", essStats.getMean(), 
-          "minESS", essStats.getMin(), 
-          "maxESS", essStats.getMax(), 
-          "nLocalGradEvals", nLocalGradEvals,
-          "avgRelativeMeanEstimateError", relativeMeanEstimateErrorStats.getMean(),
-          "avgRelativeSDEstimateErrorStats", relativeSDEstimateErrorStats.getMean());
+      sampler.compute(masterSamplingRandom);
       
-      sampler.cleanUp();
+      for (int power = 1; power <= 2; power++)
+      {
+        List<Double> estimates = sampler.estimates(power);
+        double nLocalGradEvals = sampler.nLocalGradientEvals();
+        for (int cDim = 0; cDim < nDim; cDim++)
+        {
+          out.printWrite("results", 
+              "nDim", nDim,
+              "power", power,
+              "cDim", cDim,
+              "estimate", estimates.get(cDim),
+              "trueValue", trueValue(cDim, power),
+              "nLocalGradEvals", nLocalGradEvals,
+              "optimalEstimatorVariance", optimalEstimatorVariance(cDim, power));
+        }
+      }
     }
     out.close();
   }
   
+  private double trueValue(int cDim, int power)
+  {
+    if (power != 1 && power != 2)
+      throw new RuntimeException();
+    return power == 1 ? 0.0 : chain.covarMatrix.get(cDim, cDim);
+  }
+
+  private double optimalEstimatorVariance(int cDim, int power)
+  {
+    if (power != 1 && power != 2)
+      throw new RuntimeException();
+    
+    double modelVariance = chain.covarMatrix.get(cDim, cDim);
+    return power * modelVariance;
+  }
+
   public static void main(String [] args)
   {
     Mains.instrumentedRun(args, new EstimateESSByDimensionality2());
