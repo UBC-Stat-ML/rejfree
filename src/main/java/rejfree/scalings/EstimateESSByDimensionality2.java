@@ -3,7 +3,6 @@ package rejfree.scalings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
@@ -39,9 +38,6 @@ public class EstimateESSByDimensionality2 implements Runnable
   
   @OptionSet(name = "stan")
   public StanUtils.StanOptions stanOptions = new StanUtils.StanOptions();
-  
-  @Option
-  public Random masterSamplingRandom = new Random(1);
   
   public static enum SamplingMethod
   {
@@ -82,11 +78,10 @@ public class EstimateESSByDimensionality2 implements Runnable
     StanSampler(boolean useOpt) { this.useOptimalSettings = useOpt; }
     
     @Override
-    public void compute(Random rand)
+    public void compute()
     {
       ran = true;
       final int dim = chain.dim();
-      stanOptions.rand = rand;
       if (useOptimalSettings)
       {
         double epsilon =
@@ -147,7 +142,7 @@ public class EstimateESSByDimensionality2 implements Runnable
   
   public static interface SamplingMethodImplementation 
   {
-    public void compute(Random rand);
+    public void compute();
     public List<Double> estimates(int power);
     public double nLocalGradientEvals();
   }
@@ -168,7 +163,7 @@ public class EstimateESSByDimensionality2 implements Runnable
       exactSample = chain.exactSample();
       modelSpec = chain.new NormalChainModel(exactSample.data);
       SamplingMethodImplementation sampler = method.newInstance(this);
-      sampler.compute(masterSamplingRandom);
+      sampler.compute();
       
       for (int power = 1; power <= 2; power++)
       {
