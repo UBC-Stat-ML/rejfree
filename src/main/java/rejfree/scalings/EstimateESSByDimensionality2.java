@@ -75,8 +75,7 @@ public class EstimateESSByDimensionality2 implements Runnable
       public SamplingMethodImplementation newInstance(
           EstimateESSByDimensionality2 instance)
       {
-        // TODO Auto-generated method stub
-        return null;
+        return instance.new HMCSampler();
       }
     },
     BPS {
@@ -93,7 +92,7 @@ public class EstimateESSByDimensionality2 implements Runnable
   public class HMCSampler implements SamplingMethodImplementation
   {
     int l;
-    List<SummaryStatistics> sampleStatistics;
+    List<SummaryStatistics> sampleStatistics = new ArrayList<>();
     final int dim = chain.dim();
 
     @Override
