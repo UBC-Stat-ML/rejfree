@@ -1,8 +1,11 @@
 package rejfree.scalings;
 
+import hmc.DataStruct;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
@@ -13,6 +16,7 @@ import rejfree.models.normal.CompareStanRFOnNormalModel;
 import rejfree.models.normal.NormalChain;
 import rejfree.models.normal.NormalChain.NormalChainModel;
 import rejfree.models.normal.NormalChainOptions;
+import rejfree.scalings.EstimateESSByDimensionality.IsotropicNormalHMCEnergy;
 import briefj.BriefFiles;
 import briefj.OutputManager;
 import briefj.opt.Option;
@@ -39,6 +43,15 @@ public class EstimateESSByDimensionality2 implements Runnable
   @OptionSet(name = "stan")
   public StanUtils.StanOptions stanOptions = new StanUtils.StanOptions();
   
+  @Option
+  public int nHMCIters = 1000;
+  
+  @Option
+  public boolean randomizeHMCPathLength = true;
+  
+  @Option
+  public Random hmcRandom = new Random(1);
+  
   public static enum SamplingMethod
   {
     STAN_OPTIMAL {
@@ -57,6 +70,15 @@ public class EstimateESSByDimensionality2 implements Runnable
         return instance.new StanSampler(false);
       }
     },
+    HMC_OPTIMAL {
+      @Override
+      public SamplingMethodImplementation newInstance(
+          EstimateESSByDimensionality2 instance)
+      {
+        // TODO Auto-generated method stub
+        return null;
+      }
+    },
     BPS {
       @Override
       public SamplingMethodImplementation newInstance(
@@ -66,6 +88,59 @@ public class EstimateESSByDimensionality2 implements Runnable
       }
     };
     public abstract SamplingMethodImplementation newInstance(EstimateESSByDimensionality2 instance);
+  }
+  
+  public class HMCSampler implements SamplingMethodImplementation
+  {
+    int l;
+    List<SummaryStatistics> sampleStatistics;
+    final int dim = chain.dim();
+
+    @Override
+    public void compute()
+    {
+      if (options.offDiag != 0.0)
+        throw new RuntimeException();
+      
+      IsotropicNormalHMCEnergy target = new IsotropicNormalHMCEnergy();
+      double epsilon =
+          Math.pow(2,   -5.0/4.0) *  // to have d=2 corresponding to epsilon = 1/2
+          Math.pow(dim, -1.0/4.0); // from Radford Neal's HMC tutorial asymptotics
+      l = (int) (5.0 * 1.0 / epsilon);
+      DoubleMatrix sample = new DoubleMatrix(dim);
+      for (int i = 0; i < dim; i++)
+      {
+        sample.put(i, options.random.nextGaussian());
+        sampleStatistics.add(new SummaryStatistics());
+      }
+      for (int i = 0 ; i < nHMCIters; i++) 
+      {
+        DataStruct result = hmc.HMC.doIter(hmcRandom, l, epsilon, sample, target, target, randomizeHMCPathLength);
+        sample = result.next_q;
+        for (int d = 0; d < dim; d++)
+          sampleStatistics.get(d).addValue(sample.get(d));
+      }
+    }
+
+    @Override
+    public List<Double> estimates(int power)
+    {
+      List<Double> result = new ArrayList<>();
+      for (int d = 0; d < dim; d++)
+      {
+        SummaryStatistics currentStats = sampleStatistics.get(d);
+        result.add( (power == 1 ? currentStats.getSum() : currentStats.getSumsq()) /currentStats.getN());
+      }
+      return result;
+    }
+
+    @Override
+    public double nLocalGradientEvals()
+    {
+      final int dim = chain.dim();
+      return ((double) dim) * nHMCIters * (randomizeHMCPathLength ? l/2.0 : l); 
+    }
+    
   }
   
   public class StanSampler implements SamplingMethodImplementation
@@ -198,7 +273,7 @@ public class EstimateESSByDimensionality2 implements Runnable
       throw new RuntimeException();
     
     double modelVariance = chain.covarMatrix.get(cDim, cDim);
-    return power * modelVariance;
+    return modelVariance * power;
   }
 
   public static void main(String [] args)
