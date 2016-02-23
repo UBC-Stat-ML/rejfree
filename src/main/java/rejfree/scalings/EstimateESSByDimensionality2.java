@@ -11,12 +11,16 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.jblas.DoubleMatrix;
 
 import rejfree.StanUtils;
+import rejfree.RFSamplerOptions.RefreshmentMethod;
 import rejfree.StanUtils.StanExecution;
+import rejfree.local.LocalRFRunner;
+import rejfree.local.LocalRFRunnerOptions;
 import rejfree.models.normal.CompareStanRFOnNormalModel;
 import rejfree.models.normal.NormalChain;
 import rejfree.models.normal.NormalChain.NormalChainModel;
 import rejfree.models.normal.NormalChainOptions;
 import rejfree.scalings.EstimateESSByDimensionality.IsotropicNormalHMCEnergy;
+import blang.variables.RealVariable;
 import briefj.BriefFiles;
 import briefj.OutputManager;
 import briefj.opt.Option;
@@ -48,6 +52,9 @@ public class EstimateESSByDimensionality2 implements Runnable
   
   @Option
   public boolean randomizeHMCPathLength = true;
+  
+  @Option
+  public double bpsTrajLength = 1000.0;
   
   @Option
   public Random hmcRandom = new Random(1);
@@ -83,10 +90,52 @@ public class EstimateESSByDimensionality2 implements Runnable
       public SamplingMethodImplementation newInstance(
           EstimateESSByDimensionality2 instance)
       {
-        throw new RuntimeException();
+        return instance.new BPSampler();
       }
     };
     public abstract SamplingMethodImplementation newInstance(EstimateESSByDimensionality2 instance);
+  }
+  
+  public class BPSampler implements SamplingMethodImplementation
+  {
+    LocalRFRunner rf;
+    final int dim = chain.dim();
+
+    @Override
+    public void compute()
+    {
+      LocalRFRunnerOptions options = new LocalRFRunnerOptions();
+      options.maxRunningTimeMilli = Long.MAX_VALUE;
+      options.maxSteps = Integer.MAX_VALUE;
+      options.maxTrajectoryLength = bpsTrajLength;
+      options.rfOptions.refreshmentMethod = RefreshmentMethod.GLOBAL;
+      options.rfOptions.refreshRate = 1.0;
+      options.silent = true;
+      
+      rf = new LocalRFRunner(options);
+      rf.init(modelSpec);
+      rf.addMomentRayProcessor();
+      rf.run();
+    }
+
+    @Override
+    public List<Double> estimates(int power)
+    {
+      if (power != 1 && power != 2)
+        throw new RuntimeException();
+      
+      List<Double> result = new ArrayList<>();
+      for (RealVariable var : modelSpec.variables)
+        result.add( power == 1 ? rf.momentRayProcessor.getMeanEstimate(var) : rf.momentRayProcessor.getSquaredVariableEstimate(var) );
+      return result;
+    }
+
+    @Override
+    public double nLocalGradientEvals()
+    {
+      return ((double) rf.sampler.getNCollisions() + (double) rf.sampler.getNRefreshments()) * dim;
+    }
+    
   }
   
   public class HMCSampler implements SamplingMethodImplementation
@@ -124,6 +173,9 @@ public class EstimateESSByDimensionality2 implements Runnable
     @Override
     public List<Double> estimates(int power)
     {
+      if (power != 1 && power != 2)
+        throw new RuntimeException();
+      
       List<Double> result = new ArrayList<>();
       for (int d = 0; d < dim; d++)
       {
@@ -221,7 +273,6 @@ public class EstimateESSByDimensionality2 implements Runnable
     public double nLocalGradientEvals();
   }
   
-  @SuppressWarnings("unused") // remove once BPS is implemented
   private NormalChainModel modelSpec = null;
   private NormalChain chain = null;
   private DoubleMatrix exactSample = null;
