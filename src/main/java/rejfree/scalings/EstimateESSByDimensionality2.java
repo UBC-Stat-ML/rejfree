@@ -133,7 +133,7 @@ public class EstimateESSByDimensionality2 implements Runnable
     @Override
     public double nLocalGradientEvals()
     {
-      return ((double) rf.sampler.getNCollisions() + (double) rf.sampler.getNRefreshments()) * dim;
+      return rf.sampler.getNCollidedVariables() + rf.sampler.getNRefreshedVariables();
     }
     
   }
