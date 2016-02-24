@@ -57,7 +57,7 @@ public class EstimateESSByDimensionality2 implements Runnable
   public double bpsTrajLength = 1000.0;
   
   @Option
-  public Random hmcRandom = new Random(1);
+  public Random mainRandom = new Random(1);
   
   public static enum SamplingMethod
   {
@@ -111,6 +111,7 @@ public class EstimateESSByDimensionality2 implements Runnable
       options.rfOptions.refreshmentMethod = RefreshmentMethod.GLOBAL;
       options.rfOptions.refreshRate = 1.0;
       options.silent = true;
+      options.samplingRandom = mainRandom;
       
       rf = new LocalRFRunner(options);
       rf.init(modelSpec);
@@ -163,7 +164,7 @@ public class EstimateESSByDimensionality2 implements Runnable
       }
       for (int i = 0 ; i < nHMCIters; i++) 
       {
-        DataStruct result = hmc.HMC.doIter(hmcRandom, l, epsilon, sample, target, target, randomizeHMCPathLength);
+        DataStruct result = hmc.HMC.doIter(mainRandom, l, epsilon, sample, target, target, randomizeHMCPathLength);
         sample = result.next_q;
         for (int d = 0; d < dim; d++)
           sampleStatistics.get(d).addValue(sample.get(d));
@@ -223,6 +224,8 @@ public class EstimateESSByDimensionality2 implements Runnable
       else
         stanOptions.saveWarmUp = true; // needed to compute running time
       
+      stanOptions.rand = mainRandom;
+      
       stanExec = chain.stanExecution(stanOptions);
       stanExec.output = BriefFiles.createTempFile();
       stanExec.addInit(CompareStanRFOnNormalModel.VAR_NAME, exactSample);
@@ -281,6 +284,7 @@ public class EstimateESSByDimensionality2 implements Runnable
   public void run()
   {
     OutputManager out = Results.getGlobalOutputManager();
+    options.random = mainRandom;
     for (int nDim = minDim; nDim <= maxDim; nDim *= 2)
     {
       options.nPairs = nDim - 1;
