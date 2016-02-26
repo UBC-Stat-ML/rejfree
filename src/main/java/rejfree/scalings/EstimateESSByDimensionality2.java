@@ -42,7 +42,7 @@ public class EstimateESSByDimensionality2 implements Runnable
   public NormalChainOptions options = new NormalChainOptions();
   
   @Option
-  public SamplingMethod method = SamplingMethod.BPS;
+  public SamplingMethod method = SamplingMethod.BPS_LOCAL;
   
   @OptionSet(name = "stan")
   public StanUtils.StanOptions stanOptions = new StanUtils.StanOptions();
@@ -85,12 +85,20 @@ public class EstimateESSByDimensionality2 implements Runnable
         return instance.new HMCSampler();
       }
     },
-    BPS {
+    BPS_LOCAL {
       @Override
       public SamplingMethodImplementation newInstance(
           EstimateESSByDimensionality2 instance)
       {
-        return instance.new BPSampler();
+        return instance.new BPSampler(true);
+      }
+    },
+    BPS_GLOBAL {
+      @Override
+      public SamplingMethodImplementation newInstance(
+          EstimateESSByDimensionality2 instance)
+      {
+        return instance.new BPSampler(false);
       }
     };
     public abstract SamplingMethodImplementation newInstance(EstimateESSByDimensionality2 instance);
@@ -100,6 +108,12 @@ public class EstimateESSByDimensionality2 implements Runnable
   {
     LocalRFRunner rf;
     final int dim = chain.dim();
+    final boolean isLocal;
+    
+    public BPSampler(boolean isLocal)
+    {
+      this.isLocal = isLocal;
+    }
 
     @Override
     public void compute()
@@ -108,7 +122,7 @@ public class EstimateESSByDimensionality2 implements Runnable
       options.maxRunningTimeMilli = Long.MAX_VALUE;
       options.maxSteps = Integer.MAX_VALUE;
       options.maxTrajectoryLength = bpsTrajLength;
-      options.rfOptions.refreshmentMethod = RefreshmentMethod.GLOBAL;
+      options.rfOptions.refreshmentMethod = isLocal ? RefreshmentMethod.LOCAL : RefreshmentMethod.GLOBAL;
       options.rfOptions.refreshRate = 1.0;
       options.silent = true;
       options.samplingRandom = mainRandom;
@@ -134,7 +148,7 @@ public class EstimateESSByDimensionality2 implements Runnable
     @Override
     public double nLocalGradientEvals()
     {
-      return rf.sampler.getNCollidedVariables() + rf.sampler.getNRefreshedVariables();
+      return rf.sampler.getNCollisions() * (isLocal ? Math.log(dim) : dim) + rf.sampler.getNRefreshments() * (isLocal ? 2.0 : dim);
     }
     
   }
@@ -190,7 +204,7 @@ public class EstimateESSByDimensionality2 implements Runnable
     public double nLocalGradientEvals()
     {
       final int dim = chain.dim();
-      return ((double) dim) * nHMCIters * (randomizeHMCPathLength ? l/2.0 : l); 
+      return ((double) dim) * nHMCIters * (randomizeHMCPathLength ? (1.0+l)/2.0 : l); 
     }
     
   }
@@ -283,6 +297,8 @@ public class EstimateESSByDimensionality2 implements Runnable
   @Override
   public void run()
   {
+    options.useLocal = method == SamplingMethod.BPS_LOCAL;
+      
     OutputManager out = Results.getGlobalOutputManager();
     options.random = mainRandom;
     for (int nDim = minDim; nDim <= maxDim; nDim *= 2)
