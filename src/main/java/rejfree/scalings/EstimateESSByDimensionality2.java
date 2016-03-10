@@ -59,6 +59,9 @@ public class EstimateESSByDimensionality2 implements Runnable
   @Option
   public Random mainRandom = new Random(1);
   
+  @Option
+  public int nRepeats = 1;
+  
   public static enum SamplingMethod
   {
     STAN_OPTIMAL {
@@ -301,32 +304,34 @@ public class EstimateESSByDimensionality2 implements Runnable
       
     OutputManager out = Results.getGlobalOutputManager();
     options.random = mainRandom;
-    for (int nDim = minDim; nDim <= maxDim; nDim *= 2)
-    {
-      options.nPairs = nDim - 1;
-      chain = new NormalChain(options);
-      exactSample = chain.exactSample();
-      modelSpec = chain.new NormalChainModel(exactSample.data);
-      SamplingMethodImplementation sampler = method.newInstance(this);
-      sampler.compute();
-      
-      for (int power = 1; power <= 2; power++)
+    for (int repeat = 0; repeat < nRepeats; repeat++)
+      for (int nDim = minDim; nDim <= maxDim; nDim *= 2)
       {
-        List<Double> estimates = sampler.estimates(power);
-        double nLocalGradEvals = sampler.nLocalGradientEvals();
-        for (int cDim = 0; cDim < nDim; cDim++)
+        options.nPairs = nDim - 1;
+        chain = new NormalChain(options);
+        exactSample = chain.exactSample();
+        modelSpec = chain.new NormalChainModel(exactSample.data);
+        SamplingMethodImplementation sampler = method.newInstance(this);
+        sampler.compute();
+        
+        for (int power = 1; power <= 2; power++)
         {
-          out.printWrite("results", 
-              "nDim", nDim,
-              "power", power,
-              "cDim", cDim,
-              "estimate", estimates.get(cDim),
-              "trueValue", trueValue(cDim, power),
-              "nLocalGradEvals", nLocalGradEvals,
-              "optimalEstimatorVariance", optimalEstimatorVariance(cDim, power));
+          List<Double> estimates = sampler.estimates(power);
+          double nLocalGradEvals = sampler.nLocalGradientEvals();
+          for (int cDim = 0; cDim < nDim; cDim++)
+          {
+            out.printWrite("results", 
+                "repeat", repeat,
+                "nDim", nDim,
+                "power", power,
+                "cDim", cDim,
+                "estimate", estimates.get(cDim),
+                "trueValue", trueValue(cDim, power),
+                "nLocalGradEvals", nLocalGradEvals,
+                "optimalEstimatorVariance", optimalEstimatorVariance(cDim, power));
+          }
         }
       }
-    }
     out.close();
   }
   
