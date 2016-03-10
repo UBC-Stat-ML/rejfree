@@ -165,7 +165,7 @@ public class EstimateESSByDimensionality2 implements Runnable
     @Override
     public void compute()
     {
-      if (options.offDiag != 0.0)
+      if (options.offDiag != 0.0 || options.diag != 1.0)
         throw new RuntimeException();
       
       IsotropicNormalHMCEnergy target = new IsotropicNormalHMCEnergy();
@@ -279,8 +279,14 @@ public class EstimateESSByDimensionality2 implements Runnable
       else
       {
         double totalNumberOfLeapFrogs = 0;
-        for (double d : stanExec.parsedStanOutput().get("n_leapfrog__"))
-          totalNumberOfLeapFrogs += d;
+        List<Double> nIters = stanExec.parsedStanOutput().get("n_leapfrog__");
+        if (nIters == null) // when it is set, it is not output
+          totalNumberOfLeapFrogs = (stanOptions.intTime / stanOptions.stepSize) * (stanOptions.nStanIters + stanOptions.nStanWarmUps );
+        else
+        {
+          for (double d : nIters)
+            totalNumberOfLeapFrogs += d;
+        }
         return totalNumberOfLeapFrogs * dim;
       }
     }
