@@ -334,7 +334,7 @@ public class EstimateESSByDimensionality2 implements Runnable
           {
             out.printWrite("results", 
                 "repeat", repeat,
-                "perturbationOnStepSize", perturbation * (negPermutation ? -1 : +1),
+                "perturbationOnStepSize", (perturbation == 0 ? "0.0" : perturbation * (negPermutation ? -1 : +1)),
                 "nDim", nDim,
                 "power", power,
                 "cDim", cDim,
