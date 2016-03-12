@@ -317,6 +317,8 @@ public class EstimateESSByDimensionality2 implements Runnable
     OutputManager out = Results.getGlobalOutputManager();
     options.random = mainRandom;
     for (int repeat = 0; repeat < nRepeats; repeat++)
+    {
+      System.out.println("repeat " + repeat + "/" + nRepeats);
       for (int nDim = minDim; nDim <= maxDim; nDim *= 2)
       {
         options.nPairs = nDim - 1;
@@ -332,7 +334,7 @@ public class EstimateESSByDimensionality2 implements Runnable
           double nLocalGradEvals = sampler.nLocalGradientEvals();
           for (int cDim = 0; cDim < nDim; cDim++)
           {
-            out.printWrite("results", 
+            out.write("results", 
                 "repeat", repeat,
                 "perturbationOnStepSize", (perturbation == 0 ? "0.0" : perturbation * (negPermutation ? -1 : +1)),
                 "nDim", nDim,
@@ -346,6 +348,7 @@ public class EstimateESSByDimensionality2 implements Runnable
         }
       }
     out.close();
+    }
   }
   
   private double trueValue(int cDim, int power)
