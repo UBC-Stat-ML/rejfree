@@ -117,7 +117,6 @@ public class EstimateESSByDimensionality2 implements Runnable
   public class BPSampler implements SamplingMethodImplementation
   {
     LocalRFRunner rf;
-    final int dim = chain.dim();
     final boolean isLocal;
     
     public BPSampler(boolean isLocal)
@@ -167,7 +166,6 @@ public class EstimateESSByDimensionality2 implements Runnable
   {
     int l;
     List<SummaryStatistics> sampleStatistics = new ArrayList<>();
-    final int dim = chain.dim();
 
     @Override
     public void compute()
@@ -186,13 +184,16 @@ public class EstimateESSByDimensionality2 implements Runnable
         sample.put(i, options.random.nextGaussian());
         sampleStatistics.add(new SummaryStatistics());
       }
+      SummaryStatistics acceptRate = new SummaryStatistics();
       for (int i = 0 ; i < nHMCIters; i++) 
       {
         DataStruct result = hmc.HMC.doIter(mainRandom, l, epsilon, sample, target, target, randomizeHMCPathLength);
+        acceptRate.addValue(result.accept ? 1 : 0);
         sample = result.next_q;
         for (int d = 0; d < dim; d++)
           sampleStatistics.get(d).addValue(sample.get(d));
       }
+      out.printWrite("hmc-accept-rate", "dim", dim, "acceptRate", acceptRate.getMean());
     }
 
     @Override
@@ -213,7 +214,6 @@ public class EstimateESSByDimensionality2 implements Runnable
     @Override
     public double nLocalGradientEvals()
     {
-      final int dim = chain.dim();
       return ((double) dim) * nHMCIters * (randomizeHMCPathLength ? (1.0+l)/2.0 : l); 
     }
     
@@ -232,7 +232,6 @@ public class EstimateESSByDimensionality2 implements Runnable
     public void compute()
     {
       ran = true;
-      final int dim = chain.dim();
       if (useOptimalSettings)
       {
         double epsilon =
@@ -280,7 +279,6 @@ public class EstimateESSByDimensionality2 implements Runnable
       if (!ran)
         throw new RuntimeException();
       
-      int dim = chain.dim();
       if (useOptimalSettings)
         return stanOptions.nStanIters * (stanOptions.intTime / stanOptions.stepSize) * dim;
       else
@@ -309,23 +307,35 @@ public class EstimateESSByDimensionality2 implements Runnable
   private NormalChainModel modelSpec = null;
   private NormalChain chain = null;
   private DoubleMatrix exactSample = null;
+  
+  int dim;
+  OutputManager out;
 
   @Override
   public void run()
   {
     options.useLocal = method == SamplingMethod.BPS_LOCAL;
       
-    OutputManager out = Results.getGlobalOutputManager();
+    out = Results.getGlobalOutputManager();
     options.random = mainRandom;
     for (int repeat = 0; repeat < nRepeats; repeat++)
     {
       System.out.println("repeat " + repeat + "/" + nRepeats);
-      for (int nDim = minDim; nDim <= maxDim; nDim *= 2)
+      for (dim = minDim; dim <= maxDim; dim *= 2)
       {
-        options.nPairs = nDim - 1;
-        chain = new NormalChain(options);
-        exactSample = chain.exactSample();
-        modelSpec = chain.new NormalChainModel(exactSample.data);
+        options.nPairs = dim - 1;
+        if (method != SamplingMethod.HMC_OPTIMAL)
+        {
+          chain = new NormalChain(options);
+          exactSample = chain.exactSample();
+          modelSpec = chain.new NormalChainModel(exactSample.data);
+        }
+        else
+        {
+          exactSample = new DoubleMatrix(dim);
+          for (int i = 0; i < dim; i++)
+            exactSample.put(i, mainRandom.nextGaussian());
+        }
         SamplingMethodImplementation sampler = method.newInstance(this);
         sampler.compute();
         
@@ -333,12 +343,12 @@ public class EstimateESSByDimensionality2 implements Runnable
         {
           List<Double> estimates = sampler.estimates(power);
           double nLocalGradEvals = sampler.nLocalGradientEvals();
-          for (int cDim = 0; cDim < nDim; cDim++)
+          for (int cDim = 0; cDim < dim; cDim++)
           {
             out.write("results", 
                 "repeat", repeat,
                 "perturbationOnStepSize", (perturbation == 0 ? "0.0" : perturbation * (negPermutation ? -1 : +1)),
-                "nDim", nDim,
+                "nDim", dim,
                 "power", power,
                 "cDim", cDim,
                 "estimate", estimates.get(cDim),
@@ -371,7 +381,7 @@ public class EstimateESSByDimensionality2 implements Runnable
   {
     if (method == SamplingMethod.HMC_OPTIMAL)
     {
-      BriefLog.warnOnce("HMC_OPTIMAL a bit different than the other methods");
+      BriefLog.warnOnce("Fixme: use a real isotropic normal target so that all methods can be compared without matrix inversion");
       return 1.0;
     }
     return chain.covarMatrix.get(cDim, cDim);
