@@ -22,6 +22,7 @@ import rejfree.models.normal.NormalChainOptions;
 import rejfree.scalings.EstimateESSByDimensionality.IsotropicNormalHMCEnergy;
 import blang.variables.RealVariable;
 import briefj.BriefFiles;
+import briefj.BriefLog;
 import briefj.OutputManager;
 import briefj.opt.Option;
 import briefj.opt.OptionSet;
@@ -355,7 +356,7 @@ public class EstimateESSByDimensionality2 implements Runnable
   {
     if (power != 1 && power != 2)
       throw new RuntimeException();
-    return power == 1 ? 0.0 : chain.covarMatrix.get(cDim, cDim);
+    return power == 1 ? 0.0 : modelVariance(cDim);
   }
 
   private double optimalEstimatorVariance(int cDim, int power)
@@ -363,8 +364,17 @@ public class EstimateESSByDimensionality2 implements Runnable
     if (power != 1 && power != 2)
       throw new RuntimeException();
     
-    double modelVariance = chain.covarMatrix.get(cDim, cDim);
-    return modelVariance * power;
+    return modelVariance(cDim) * power;
+  }
+  
+  private double modelVariance(int cDim)
+  {
+    if (method == SamplingMethod.HMC_OPTIMAL)
+    {
+      BriefLog.warnOnce("HMC_OPTIMAL a bit different than the other methods");
+      return 1.0;
+    }
+    return chain.covarMatrix.get(cDim, cDim);
   }
 
   public static void main(String [] args)
