@@ -348,8 +348,8 @@ public class EstimateESSByDimensionality2 implements Runnable
           }
         }
       }
-    out.close();
     }
+    out.close();
   }
   
   private double trueValue(int cDim, int power)
