@@ -343,7 +343,7 @@ public class EstimateESSByDimensionality2 implements Runnable
         {
           List<Double> estimates = sampler.estimates(power);
           double nLocalGradEvals = sampler.nLocalGradientEvals();
-          for (int cDim = 0; cDim < dim; cDim++)
+          for (int cDim = 0; cDim < minDim; cDim++)
           {
             out.write("results", 
                 "repeat", repeat,
