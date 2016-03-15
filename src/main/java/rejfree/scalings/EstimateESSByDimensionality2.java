@@ -63,11 +63,9 @@ public class EstimateESSByDimensionality2 implements Runnable
   @Option
   public int nRepeats = 1;
   
-  @Option(gloss = "For HMC, deviation from optimal epsilon scaling to investigate sensitivity")
+  @Option(gloss = "For HMC, deviation from optimal epsilon scaling to investigate sensitivity "
+      + "(NB: to make it negative, use '-- -0.2' for example)")
   public double perturbation = 0.0;
-  
-  @Option(gloss = "Work around parsing limitation")
-  public boolean negPermutation = false;
   
   public static enum SamplingMethod
   {
@@ -176,7 +174,7 @@ public class EstimateESSByDimensionality2 implements Runnable
       IsotropicNormalHMCEnergy target = new IsotropicNormalHMCEnergy();
       double epsilon =
           Math.pow(2,   -5.0/4.0) *  // to have d=2 corresponding to epsilon = 1/2
-          Math.pow(dim, -1.0/4.0 + perturbation * (negPermutation ? -1 : +1)); // from Radford Neal's HMC tutorial asymptotics
+          Math.pow(dim, -1.0/4.0 + perturbation); // from Radford Neal's HMC tutorial asymptotics
       l = (int) (5.0 * 1.0 / epsilon);
       DoubleMatrix sample = new DoubleMatrix(dim);
       for (int i = 0; i < dim; i++)
@@ -236,7 +234,7 @@ public class EstimateESSByDimensionality2 implements Runnable
       {
         double epsilon =
             Math.pow(2,   -5.0/4.0) *  // to have d=2 corresponding to epsilon = 1/2
-            Math.pow(dim, -1.0/4.0 + perturbation * (negPermutation ? -1 : +1)); // from Radford Neal's HMC tutorial asymptotics
+            Math.pow(dim, -1.0/4.0 + perturbation); // from Radford Neal's HMC tutorial asymptotics
         int l = (int) (5.0 * 1.0 / epsilon);
         stanOptions.nStanWarmUps = 0;
         stanOptions.useNuts = false;
@@ -347,7 +345,6 @@ public class EstimateESSByDimensionality2 implements Runnable
           {
             out.write("results", 
                 "repeat", repeat,
-                "perturbationOnStepSize", (perturbation == 0 ? "0.0" : perturbation * (negPermutation ? -1 : +1)),
                 "nDim", dim,
                 "power", power,
                 "cDim", cDim,
