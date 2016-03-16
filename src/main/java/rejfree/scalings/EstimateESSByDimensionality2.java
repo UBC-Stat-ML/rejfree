@@ -22,7 +22,6 @@ import rejfree.models.normal.NormalChainOptions;
 import rejfree.scalings.EstimateESSByDimensionality.IsotropicNormalHMCEnergy;
 import blang.variables.RealVariable;
 import briefj.BriefFiles;
-import briefj.BriefLog;
 import briefj.OutputManager;
 import briefj.opt.Option;
 import briefj.opt.OptionSet;
@@ -34,16 +33,19 @@ import briefj.run.Results;
 public class EstimateESSByDimensionality2 implements Runnable
 {
   @Option
-  public int minDim = 8;
+  public int minModelIndex = 3;
   
   @Option
-  public int maxDim = 512;
+  public int maxModelIndex = 9;
 
-  @OptionSet(name = "model")
-  public NormalChainOptions options = new NormalChainOptions();
+  @Option
+  public ModelType modelType = ModelType.ISOTROPIC_NORMAL;
   
   @Option
   public SamplingMethod method = SamplingMethod.BPS_LOCAL;
+  
+  @OptionSet(name = "model")
+  public NormalChainOptions options = new NormalChainOptions();
   
   @OptionSet(name = "stan")
   public StanUtils.StanOptions stanOptions = new StanUtils.StanOptions();
@@ -119,6 +121,8 @@ public class EstimateESSByDimensionality2 implements Runnable
     
     public BPSampler(boolean isLocal)
     {
+      if (!isLocal)
+        throw new RuntimeException("GLOBAL not yet implemented (see TODO below)");
       this.isLocal = isLocal;
     }
 
@@ -135,7 +139,7 @@ public class EstimateESSByDimensionality2 implements Runnable
       options.samplingRandom = mainRandom;
       
       rf = new LocalRFRunner(options);
-      rf.init(modelSpec);
+      rf.init(model.getModelSpec()); // TODO: this needs to be make into global using some kind of adapter, if !isLocal
       rf.addMomentRayProcessor();
       rf.run();
     }
@@ -147,7 +151,7 @@ public class EstimateESSByDimensionality2 implements Runnable
         throw new RuntimeException();
       
       List<Double> result = new ArrayList<>();
-      for (RealVariable var : modelSpec.variables)
+      for (RealVariable var : rf.model.getLatentVariables(RealVariable.class))
         result.add( power == 1 ? rf.momentRayProcessor.getMeanEstimate(var) : rf.momentRayProcessor.getSquaredVariableEstimate(var) );
       return result;
     }
@@ -155,7 +159,7 @@ public class EstimateESSByDimensionality2 implements Runnable
     @Override
     public double nLocalGradientEvals()
     {
-      return rf.sampler.getNCollisions() * (isLocal ? Math.log(dim) : dim) + rf.sampler.getNRefreshments() * (isLocal ? 2.0 : dim);
+      return rf.sampler.getNCollisions() * (isLocal ? model.meanDegree() * Math.log(model.dim()) : model.dim()) + rf.sampler.getNRefreshments() * (isLocal ? model.meanDegree() : model.dim());
     }
     
   }
@@ -171,27 +175,27 @@ public class EstimateESSByDimensionality2 implements Runnable
       if (options.offDiag != 0.0 || options.diag != 1.0)
         throw new RuntimeException();
       
-      IsotropicNormalHMCEnergy target = new IsotropicNormalHMCEnergy();
+      if (modelType != ModelType.ISOTROPIC_NORMAL)
+        throw new RuntimeException();
+      
+      IsotropicNormalHMCEnergy target = new IsotropicNormalHMCEnergy(); 
       double epsilon =
           Math.pow(2,   -5.0/4.0) *  // to have d=2 corresponding to epsilon = 1/2
-          Math.pow(dim, -1.0/4.0 + perturbation); // from Radford Neal's HMC tutorial asymptotics
+          Math.pow(model.dim(), -1.0/4.0 + perturbation); // from Radford Neal's HMC tutorial asymptotics
       l = (int) (5.0 * 1.0 / epsilon);
-      DoubleMatrix sample = new DoubleMatrix(dim);
-      for (int i = 0; i < dim; i++)
-      {
-        sample.put(i, options.random.nextGaussian());
+      DoubleMatrix sample = model.sampleExact();
+      for (int i = 0; i < model.dim(); i++)
         sampleStatistics.add(new SummaryStatistics());
-      }
       SummaryStatistics acceptRate = new SummaryStatistics();
       for (int i = 0 ; i < nHMCIters; i++) 
       {
         DataStruct result = hmc.HMC.doIter(mainRandom, l, epsilon, sample, target, target, randomizeHMCPathLength);
         acceptRate.addValue(result.accept ? 1 : 0);
         sample = result.next_q;
-        for (int d = 0; d < dim; d++)
+        for (int d = 0; d < model.dim(); d++)
           sampleStatistics.get(d).addValue(sample.get(d));
       }
-      out.printWrite("hmc-accept-rate", "dim", dim, "acceptRate", acceptRate.getMean());
+      out.printWrite("hmc-accept-rate", "dim", model.dim(), "acceptRate", acceptRate.getMean());
     }
 
     @Override
@@ -201,7 +205,7 @@ public class EstimateESSByDimensionality2 implements Runnable
         throw new RuntimeException();
       
       List<Double> result = new ArrayList<>();
-      for (int d = 0; d < dim; d++)
+      for (int d = 0; d < model.dim(); d++)
       {
         SummaryStatistics currentStats = sampleStatistics.get(d);
         result.add( (power == 1 ? currentStats.getSum() : currentStats.getSumsq()) /currentStats.getN());
@@ -212,7 +216,7 @@ public class EstimateESSByDimensionality2 implements Runnable
     @Override
     public double nLocalGradientEvals()
     {
-      return ((double) dim) * nHMCIters * (randomizeHMCPathLength ? (1.0+l)/2.0 : l); 
+      return ((double) model.dim()) * nHMCIters * (randomizeHMCPathLength ? (1.0+l)/2.0 : l); 
     }
     
   }
@@ -234,7 +238,7 @@ public class EstimateESSByDimensionality2 implements Runnable
       {
         double epsilon =
             Math.pow(2,   -5.0/4.0) *  // to have d=2 corresponding to epsilon = 1/2
-            Math.pow(dim, -1.0/4.0 + perturbation); // from Radford Neal's HMC tutorial asymptotics
+            Math.pow(model.dim(), -1.0/4.0 + perturbation); // from Radford Neal's HMC tutorial asymptotics
         int l = (int) (5.0 * 1.0 / epsilon);
         stanOptions.nStanWarmUps = 0;
         stanOptions.useNuts = false;
@@ -247,9 +251,9 @@ public class EstimateESSByDimensionality2 implements Runnable
       
       stanOptions.rand = mainRandom;
       
-      stanExec = chain.stanExecution(stanOptions);
+      stanExec = model.stanExecution(); //chain.stanExecution(stanOptions);  TODO: make more general
       stanExec.output = BriefFiles.createTempFile();
-      stanExec.addInit(CompareStanRFOnNormalModel.VAR_NAME, exactSample);
+      stanExec.addInit(CompareStanRFOnNormalModel.VAR_NAME, model.sampleExact());
       stanExec.run();
       stanOutSummary  = stanExec.stanOutputToSummaryStatistics();
     }
@@ -263,7 +267,7 @@ public class EstimateESSByDimensionality2 implements Runnable
       if (power != 1 && power != 2)
         throw new RuntimeException();
       List<Double> result = new ArrayList<>();
-      for (int d = 0; d < chain.dim(); d++)
+      for (int d = 0; d < model.dim(); d++)
       {
         SummaryStatistics currentStats = stanOutSummary.get(CompareStanRFOnNormalModel.stanVarName(d));
         result.add( (power == 1 ? currentStats.getSum() : currentStats.getSumsq()) /currentStats.getN());
@@ -278,7 +282,7 @@ public class EstimateESSByDimensionality2 implements Runnable
         throw new RuntimeException();
       
       if (useOptimalSettings)
-        return stanOptions.nStanIters * (stanOptions.intTime / stanOptions.stepSize) * dim;
+        return stanOptions.nStanIters * (stanOptions.intTime / stanOptions.stepSize) * model.dim();
       else
       {
         double totalNumberOfLeapFrogs = 0;
@@ -290,7 +294,7 @@ public class EstimateESSByDimensionality2 implements Runnable
           for (double d : nIters)
             totalNumberOfLeapFrogs += d;
         }
-        return totalNumberOfLeapFrogs * dim;
+        return totalNumberOfLeapFrogs * model.dim();
       }
     }
   }
@@ -302,12 +306,168 @@ public class EstimateESSByDimensionality2 implements Runnable
     public double nLocalGradientEvals();
   }
   
-  private NormalChainModel modelSpec = null;
-  private NormalChain chain = null;
-  private DoubleMatrix exactSample = null;
-  
-  int dim;
+
+//  
+//  int dim;
   OutputManager out;
+  
+  private ModelInterface model;
+  
+  static interface ModelInterface
+  {
+    public Object getModelSpec();
+    public double trueValue(int cDim, int power);
+    public double optimalEstimatorVariance(int cDim, int power);
+    public DoubleMatrix sampleExact();
+    public int dim();
+    public int meanDegree();
+    public StanExecution stanExecution();
+  }
+  
+  static enum ModelType
+  {
+    ISOTROPIC_NORMAL {
+      @Override
+      public ModelInterface createModel(int index, EstimateESSByDimensionality2 instance)
+      {
+        return instance.new IsotropicNormalModel(1 << index); // 2^index
+      }
+    },
+    NORMAL_CHAIN {
+      @Override
+      public ModelInterface createModel(int index,
+          EstimateESSByDimensionality2 instance)
+      {
+        return instance.new NormalChainModelAdapter(1 << index);
+      }
+    };
+    public abstract ModelInterface createModel(int index, EstimateESSByDimensionality2 instance);
+  }
+  
+  class NormalChainModelAdapter implements ModelInterface
+  {
+    final int dim;
+    private final NormalChainModel modelSpec;
+    private final NormalChain chain;
+    private final DoubleMatrix exactSample;
+    
+    private NormalChainModelAdapter(int dim)
+    {
+      this.dim = dim;
+      options.nPairs = dim - 1;
+      chain = new NormalChain(options);
+      exactSample = chain.exactSample();
+      modelSpec = chain.new NormalChainModel(exactSample.data);
+    }
+
+    @Override
+    public Object getModelSpec()
+    {
+      return modelSpec;
+    }
+
+    public double trueValue(int cDim, int power)
+    {
+      if (power != 1 && power != 2)
+        throw new RuntimeException();
+      return power == 1 ? 0.0 : modelVariance(cDim);
+    }
+
+    public double optimalEstimatorVariance(int cDim, int power)
+    {
+      if (power != 1 && power != 2)
+        throw new RuntimeException();
+      
+      return modelVariance(cDim) * power;
+    }
+    
+    private double modelVariance(int cDim)
+    {
+      return chain.covarMatrix.get(cDim, cDim);
+    }
+
+    @Override
+    public DoubleMatrix sampleExact()
+    {
+      return exactSample;
+    }
+
+    @Override
+    public int dim() { return dim; }
+
+    @Override
+    public int meanDegree()
+    {
+      return 3;
+    }
+
+    @Override
+    public StanExecution stanExecution()
+    {
+      return chain.stanExecution(stanOptions);
+    }
+    
+  }
+
+  class IsotropicNormalModel implements ModelInterface
+  {
+    final int dim;
+    
+    private IsotropicNormalModel(int dim)
+    {
+      this.dim = dim;
+    }
+
+    @Override
+    public Object getModelSpec()
+    {
+      return new EstimateESSByDimensionality.ModelSpec(dim, true);
+    }
+
+    public double trueValue(int cDim, int power)
+    {
+      if (power != 1 && power != 2)
+        throw new RuntimeException();
+      return power == 1 ? 0.0 : modelVariance(cDim);
+    }
+
+    public double optimalEstimatorVariance(int cDim, int power)
+    {
+      if (power != 1 && power != 2)
+        throw new RuntimeException();
+      
+      return modelVariance(cDim) * power;
+    }
+    
+    private double modelVariance(int cDim)
+    {
+      return 1.0;
+    }
+
+    @Override
+    public DoubleMatrix sampleExact()
+    {
+      DoubleMatrix exactSample = new DoubleMatrix(dim);
+      for (int i = 0; i < dim; i++)
+        exactSample.put(i, mainRandom.nextGaussian());
+      return exactSample;
+    }
+
+    @Override
+    public int dim() { return dim; }
+
+    @Override
+    public int meanDegree()
+    {
+      return 1;
+    }
+
+    @Override
+    public StanExecution stanExecution()
+    {
+      throw new RuntimeException("Not implemented");
+    }
+  }
 
   @Override
   public void run()
@@ -316,24 +476,15 @@ public class EstimateESSByDimensionality2 implements Runnable
       
     out = Results.getGlobalOutputManager();
     options.random = mainRandom;
+    int minDim = -1;
     for (int repeat = 0; repeat < nRepeats; repeat++)
     {
       System.out.println("repeat " + repeat + "/" + nRepeats);
-      for (dim = minDim; dim <= maxDim; dim *= 2)
+      for (int modelIndex = minModelIndex; modelIndex <= maxModelIndex; modelIndex++)  //dim = minDim; dim <= maxDim; dim *= 2)
       {
-        options.nPairs = dim - 1;
-        if (method != SamplingMethod.HMC_OPTIMAL)
-        {
-          chain = new NormalChain(options);
-          exactSample = chain.exactSample();
-          modelSpec = chain.new NormalChainModel(exactSample.data);
-        }
-        else
-        {
-          exactSample = new DoubleMatrix(dim);
-          for (int i = 0; i < dim; i++)
-            exactSample.put(i, mainRandom.nextGaussian());
-        }
+        model = modelType.createModel(modelIndex, this);
+        if (minDim == -1)
+          minDim = model.dim();
         SamplingMethodImplementation sampler = method.newInstance(this);
         sampler.compute();
         
@@ -345,13 +496,13 @@ public class EstimateESSByDimensionality2 implements Runnable
           {
             out.write("results", 
                 "repeat", repeat,
-                "nDim", dim,
+                "nDim", model.dim(),
                 "power", power,
                 "cDim", cDim,
                 "estimate", estimates.get(cDim),
-                "trueValue", trueValue(cDim, power),
+                "trueValue", model.trueValue(cDim, power),
                 "nLocalGradEvals", nLocalGradEvals,
-                "optimalEstimatorVariance", optimalEstimatorVariance(cDim, power));
+                "optimalEstimatorVariance", model.optimalEstimatorVariance(cDim, power));
           }
         }
       }
@@ -359,31 +510,6 @@ public class EstimateESSByDimensionality2 implements Runnable
     out.close();
   }
   
-  private double trueValue(int cDim, int power)
-  {
-    if (power != 1 && power != 2)
-      throw new RuntimeException();
-    return power == 1 ? 0.0 : modelVariance(cDim);
-  }
-
-  private double optimalEstimatorVariance(int cDim, int power)
-  {
-    if (power != 1 && power != 2)
-      throw new RuntimeException();
-    
-    return modelVariance(cDim) * power;
-  }
-  
-  private double modelVariance(int cDim)
-  {
-    if (method == SamplingMethod.HMC_OPTIMAL)
-    {
-      BriefLog.warnOnce("Fixme: use a real isotropic normal target so that all methods can be compared without matrix inversion");
-      return 1.0;
-    }
-    return chain.covarMatrix.get(cDim, cDim);
-  }
-
   public static void main(String [] args)
   {
     Mains.instrumentedRun(args, new EstimateESSByDimensionality2());
