@@ -68,18 +68,24 @@ public class NormalFactor implements CollisionFactor, GenerativeFactor
     return new NormalFactor(JBlasUtils.inversePositiveMatrix(covar), variables);
   }
   
-  public NormalFactor(DoubleMatrix precision, List<RealVariable> variables)
+  public NormalFactor(DoubleMatrix precision, List<RealVariable> variables, double logConstant)
   {
     this.variables = FactorList.ofArguments(variables, true);
     this.precision = precision.dup();
-    double detPrecAbs = Math.abs(Decompose.lu(precision).u.diag().prod());
-    this.logConstant = - (((double)precision.getRows()) / 2.0) * Math.log(2.0 * Math.PI) + 0.5 * Math.log(detPrecAbs);
+    this.logConstant = logConstant;;
     isBin = (variables.size() == 2);
     p0 = isBin ? precision.get(0,0) : Double.NaN;
     p1 = isBin ? precision.get(1,1) : Double.NaN;
     d  = isBin ? precision.get(0,1) : Double.NaN;
     if (isBin)
       NumericalUtils.checkIsClose(precision.get(0,1), precision.get(1,0));
+  }
+  
+  public NormalFactor(DoubleMatrix precision, List<RealVariable> variables)
+  {
+    this(precision, variables, 
+        - (((double)precision.getRows()) / 2.0) * Math.log(2.0 * Math.PI) + 
+        0.5 * Math.log(Math.abs(Decompose.lu(precision).u.diag().prod())));
   }
 
   @Override
