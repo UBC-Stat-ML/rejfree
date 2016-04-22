@@ -77,11 +77,7 @@ public class TestBrownianBridgeModel implements Runnable
     final BrownianBridge model = BrownianBridge.regularlySpaced(nVariables);
     
     runner.options.maxSteps = 100_000;
-    runner.init(new Object() 
-    {
-      @DefineFactor
-      public final List<CollisionFactor> factors = model.localFactors();
-    });
+    runner.init(model.localFactorModelSpec());
     runner.addMomentRayProcessor();
     runner.run();
     

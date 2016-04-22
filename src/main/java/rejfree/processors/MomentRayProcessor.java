@@ -9,10 +9,10 @@ import briefj.collections.Counter;
 
 public class MomentRayProcessor implements RayProcessor
 {
-  private Counter<RealVariable> 
+  public Counter<RealVariable> 
     sum   = new Counter<RealVariable>(),
     sumSq = new Counter<RealVariable>();
-  private double currentTime = 0.0;
+  public double currentTime = 0.0;
 
   public double getMeanEstimate(RealVariable variable) 
   { 

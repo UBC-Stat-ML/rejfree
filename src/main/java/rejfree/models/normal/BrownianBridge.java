@@ -9,6 +9,11 @@ import cern.colt.matrix.tdouble.DoubleMatrix2D;
 import cern.colt.matrix.tdouble.algo.decomposition.SparseDoubleCholeskyDecomposition;
 import cern.colt.matrix.tdouble.impl.SparseDoubleMatrix2D;
 import rejfree.local.CollisionFactor;
+import blang.annotations.DefineFactor;
+import blang.annotations.FactorArgument;
+import blang.annotations.FactorComponent;
+import blang.factors.Factor;
+import blang.factors.FactorList;
 import blang.variables.RealVariable;
 import briefj.BriefLists;
 
@@ -26,6 +31,7 @@ public class BrownianBridge
     this.ts = ts;
     this.variables = variables;
     this.globalVariance = globalVariance;
+    globalVariance.setValue(1.0);
   }
   
   public static BrownianBridge regularlySpaced(int nVariables)
@@ -91,11 +97,73 @@ public class BrownianBridge
   {
     m.set(row, col, increment + m.get(row, col));
   }
+  
+  public Factor fullFactor()
+  {
+    return new FullFactor(globalVariance, variables);
+  }
+  
+  private class FullFactor implements Factor
+  {
+    @FactorArgument
+    public final RealVariable globalVariable;
+    
+    @FactorComponent
+    public final FactorList<RealVariable> normalMarginals;
+    
+    private FullFactor(RealVariable globalVariable,
+        List<RealVariable> normalMarginals)
+    {
+      super();
+      this.globalVariable = globalVariable;
+      this.normalMarginals = FactorList.ofArguments(normalMarginals, true);
+    }
 
+
+
+    @Override
+    public double logDensity()
+    {
+      // normalization
+      
+      double sum = 0.0;
+      
+      try 
+      {
+        sum = 0.5 * logAbsDetPrecision() - ((double) variables.size())/2.0 * Math.log(2.0 * Math.PI);
+      }
+      catch (IllegalArgumentException iae)
+      {
+        // if not pos def!
+        return Double.NEGATIVE_INFINITY;
+      }
+      
+      sum += quadraticForm(variables.get(0).getValue(), ts.get(0));
+      sum += quadraticForm(BriefLists.last(variables).getValue(), lastDelta());
+      
+      for (int i = 0; i < variables.size() - 1; i++)
+        sum += quadraticForm(
+            variables.get(i).getValue() - variables.get(i + 1).getValue(), 
+            ts.get(i + 1) - ts.get(i));
+      
+      return sum;
+    }
+  }
+  
+  private double quadraticForm(double x, double delta)
+  {
+    return -0.5 * x * x * precision(delta);
+  }
+
+  /**
+   * Limitation: will become invalid if globalParam is updated.
+   * 
+   * For sampling globalParam, use fullFactor() instead.
+   */
   public ArrayList<CollisionFactor> localFactors()
   {
     /*
-     * Decision: ideally may want to:
+     * Note 1: ideally may want to:
      * 
      *  1. construct a new NormalFactor where the precision is held in 
      *     a RealVariable instead AND
@@ -128,7 +196,7 @@ public class BrownianBridge
       final double precision = precision(delta);
       
       /*
-       *  Note: not a true precisionMatrix (determinant = 0), but intermediate
+       *  Note 2: not a true precisionMatrix (determinant = 0), but intermediate
        *        factors in L-BPS not required to be probability distributions 
        */
       DoubleMatrix pseudoPrecisionMatrix = new DoubleMatrix(2, 2,
@@ -140,7 +208,7 @@ public class BrownianBridge
       result.add(new NormalFactor(
           pseudoPrecisionMatrix, 
           pairOfVariables, 
-          Double.NaN  // see note above
+          0.0  // see Note 2 above
           ));
     }
 
@@ -166,5 +234,14 @@ public class BrownianBridge
   {
     double t = ts.get(i);
     return globalVariance.getValue() * t * (1.0 - t);
+  }
+
+  public Object localFactorModelSpec()
+  {
+    return new Object() 
+    {
+      @DefineFactor
+      public final List<CollisionFactor> factors = localFactors();
+    };
   }
 }
