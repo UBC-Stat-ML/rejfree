@@ -100,10 +100,15 @@ public class BrownianBridge
   
   public Factor fullFactor()
   {
-    return new FullFactor(globalVariance, variables);
+    return new NormalizationOrFullFactor(globalVariance, variables);
   }
   
-  private class FullFactor implements Factor
+  public Factor normalizationFactor()
+  {
+    return new NormalizationOrFullFactor(globalVariance, variables.size());
+  }
+  
+  private class NormalizationOrFullFactor implements Factor
   {
     @FactorArgument
     public final RealVariable globalVariable;
@@ -111,26 +116,39 @@ public class BrownianBridge
     @FactorComponent
     public final FactorList<RealVariable> normalMarginals;
     
-    private FullFactor(RealVariable globalVariable,
+    // number of latent gaussian variables
+    public final int size;
+    
+    private NormalizationOrFullFactor(RealVariable globalVariable,
         List<RealVariable> normalMarginals)
     {
       super();
       this.globalVariable = globalVariable;
       this.normalMarginals = FactorList.ofArguments(normalMarginals, true);
+      this.size = normalMarginals.size();
     }
-
-
-
+    
+    private NormalizationOrFullFactor(RealVariable globalVariable, int size)
+    {
+      super();
+      this.globalVariable = globalVariable;
+      this.normalMarginals = null;
+      this.size = size;
+    }
+    
+    private boolean normalizationOnly()
+    {
+      return normalMarginals == null;
+    }
+    
     @Override
     public double logDensity()
     {
-      // normalization
-      
       double sum = 0.0;
       
       try 
       {
-        sum = 0.5 * logAbsDetPrecision() - ((double) variables.size())/2.0 * Math.log(2.0 * Math.PI);
+        sum = 0.5 * logAbsDetPrecision() - ((double) size)/2.0 * Math.log(2.0 * Math.PI);
       }
       catch (IllegalArgumentException iae)
       {
@@ -138,13 +156,16 @@ public class BrownianBridge
         return Double.NEGATIVE_INFINITY;
       }
       
-      sum += quadraticForm(variables.get(0).getValue(), ts.get(0));
-      sum += quadraticForm(BriefLists.last(variables).getValue(), lastDelta());
-      
-      for (int i = 0; i < variables.size() - 1; i++)
-        sum += quadraticForm(
-            variables.get(i).getValue() - variables.get(i + 1).getValue(), 
-            ts.get(i + 1) - ts.get(i));
+      if (!normalizationOnly())
+      {
+        sum += quadraticForm(variables.get(0).getValue(), ts.get(0));
+        sum += quadraticForm(BriefLists.last(variables).getValue(), lastDelta());
+        
+        for (int i = 0; i < variables.size() - 1; i++)
+          sum += quadraticForm(
+              variables.get(i).getValue() - variables.get(i + 1).getValue(), 
+              ts.get(i + 1) - ts.get(i));
+      }
       
       return sum;
     }
@@ -160,7 +181,7 @@ public class BrownianBridge
    * 
    * For sampling globalParam, use fullFactor() instead.
    */
-  public ArrayList<CollisionFactor> localFactors()
+  public ArrayList<CollisionFactor> localCollisionFactors()
   {
     /*
      * Note 1: ideally may want to:
@@ -241,7 +262,7 @@ public class BrownianBridge
     return new Object() 
     {
       @DefineFactor
-      public final List<CollisionFactor> factors = localFactors();
+      public final List<CollisionFactor> factors = localCollisionFactors();
     };
   }
 }

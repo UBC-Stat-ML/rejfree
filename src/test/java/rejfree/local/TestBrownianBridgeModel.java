@@ -1,6 +1,5 @@
 package rejfree.local;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.math3.linear.LUDecomposition;
@@ -11,15 +10,14 @@ import org.jblas.DoubleMatrix;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.base.Stopwatch;
-
-import cern.colt.matrix.tdouble.algo.decomposition.SparseDoubleCholeskyDecomposition;
-import cern.colt.matrix.tdouble.impl.SparseDoubleMatrix2D;
-import blang.annotations.DefineFactor;
+import rejfree.models.normal.BrownianBridge;
 import briefj.opt.Option;
 import briefj.opt.OptionSet;
 import briefj.run.Mains;
-import rejfree.models.normal.BrownianBridge;
+import cern.colt.matrix.tdouble.algo.decomposition.SparseDoubleCholeskyDecomposition;
+import cern.colt.matrix.tdouble.impl.SparseDoubleMatrix2D;
+
+import com.google.common.base.Stopwatch;
 
 
 

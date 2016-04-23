@@ -1,17 +1,22 @@
 package rejfree.models.normal;
 
+import java.util.List;
 import java.util.Random;
 
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 import rejfree.local.LocalRFRunner;
 import bayonet.distributions.Gamma;
+import blang.MCMCAlgorithm;
+import blang.MCMCFactory;
 import blang.MCMCFactory.MCMCOptions;
 import blang.ProbabilityModel;
 import blang.annotations.DefineFactor;
 import blang.factors.Factor;
 import blang.mcmc.Move;
 import blang.mcmc.RealVariableOverRelaxedSlice;
+import blang.mcmc.RealVariablePeskunTypeMove;
+import blang.processing.Processor;
 import blang.processing.ProcessorContext;
 import blang.variables.RealVariable;
 import blang.variables.RealVariableProcessor;
@@ -31,26 +36,26 @@ public class BjpsPrototype implements Runnable
   public double priorShape = 2.0;
   
   @Option
-  public int nVariables = 1000;
+  public int nVariables = 1;
   
   @Option
   public double trajectoryLength = 1.0;
   
   @Option
-  public int nIters = 10000;
+  public int nIters = 10_000;
   
   @Option
   public Random mainRandom = new Random(1);
   
   @Option
-  public Method method = Method.BJPS;
-  enum Method { GIBBS, BJPS }
+  public Method method = Method.NAIVE_MH;
+  enum Method { GIBBS, BJPS, NAIVE_MH }
   
   private ModelSpec model = null;
 
   private void init()
   {
-    model = new ModelSpec();
+    model = new ModelSpec(method == Method.BJPS);
   }
   
   private class ModelSpec
@@ -62,10 +67,19 @@ public class BjpsPrototype implements Runnable
     public final Gamma<?> prior = Gamma.on(brownianBridge.globalVariance).withRateShape(priorRate, priorShape);
     
     @DefineFactor
-    public final Factor brownianLikelihood = brownianBridge.fullFactor();
+    public final Factor brownianLikelihood;
     
-    private ModelSpec()
+    @DefineFactor 
+    public final List<? extends Factor> localFactors;
+    
+    @DefineFactor
+    public final Factor priorNormalizationFactor;
+    
+    private ModelSpec(boolean useFullSlice)
     {
+      brownianLikelihood = useFullSlice ? null : brownianBridge.fullFactor();
+      localFactors = useFullSlice ? brownianBridge.localCollisionFactors() : null;
+      priorNormalizationFactor = useFullSlice ? brownianBridge.normalizationFactor() : null;
       this.graphicalModel = ProbabilityModel.parse(this);
     }
     
@@ -95,23 +109,23 @@ public class BjpsPrototype implements Runnable
     out.setOutputFolder(Results.getResultFolder());
     {
       init();
-      Estimates estimates = useGibbs() ? gibbs() : bjps();
+      Estimates estimates = null;
+      
+      if (method == Method.GIBBS)
+        estimates = gibbs();
+      else if (method == Method.BJPS)
+        estimates = bjps();
+      else if (method == Method.NAIVE_MH)
+        estimates = fullSlice();
+      else
+        throw new RuntimeException();
+      
       report("mean", 0.0, estimates.mean);
       report("variance", analyticMarginalizedVariance(), estimates.variance);
     }
     out.close();
   }
   
-  private boolean useGibbs()
-  {
-    if (method == Method.GIBBS)
-      return true;
-    else if (method == Method.BJPS)
-      return false;
-    else
-      throw new RuntimeException();
-  }
-
   private void report(String statName, double truth, double estimate)
   {
     out.printWrite("results",
@@ -167,6 +181,50 @@ public class BjpsPrototype implements Runnable
     
     return result;
   }
+  
+  private Estimates fullSlice()
+  {
+    Estimates result = new Estimates();
+    SummaryStatistics monitorStatistics = new SummaryStatistics();
+    
+    MCMCFactory factory = new MCMCFactory();
+    
+    {
+      /*
+       * Found bug in bayonet: the sampler RealVariableOverRelaxedSlice 
+       * appears not to be pi-invariant in this model. 
+       * 
+       * To reproduce the problem make the first line below uncommented 
+       * and the second one commented. The error does not go to zero.
+       */
+      
+  //    factory.excludeNodeMove(RealVariablePeskunTypeMove.class); 
+      factory.excludeNodeMove(RealVariableOverRelaxedSlice.class);
+    }
+    
+    factory.excludeNodeProcessor(RealVariableProcessor.class);
+    factory.mcmcOptions.nMCMCSweeps = nIters;
+    factory.mcmcOptions.burnIn = 0;
+    factory.mcmcOptions.thinningPeriod = 1;
+    factory.mcmcOptions.random = mainRandom;
+    factory.addProcessor(new Processor() {
+      @Override
+      public void process(ProcessorContext context)
+      {
+        monitorStatistics.addValue(model.brownianBridge.variables.get(monitoredVariable()).getValue());
+        result.processParam(context.getMcmcIteration());
+      }
+    });
+    
+    MCMCAlgorithm algo = factory.build(model.graphicalModel);
+    algo.run();
+    
+    result.mean = monitorStatistics.getMean();
+    result.variance = monitorStatistics.getVariance();
+    
+    return result;
+  }
+
   
   private Estimates gibbs()
   {
