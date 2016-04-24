@@ -116,7 +116,7 @@ public class BrownianBridge
     @FactorComponent
     public final FactorList<RealVariable> normalMarginals;
     
-    // number of latent gaussian variables
+    // number of latent Gaussian variables
     public final int size;
     
     private NormalizationOrFullFactor(RealVariable globalVariable,

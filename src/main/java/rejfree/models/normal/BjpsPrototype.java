@@ -2,6 +2,7 @@ package rejfree.models.normal;
 
 import java.util.List;
 import java.util.Random;
+import java.util.function.Function;
 
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
@@ -14,6 +15,7 @@ import blang.ProbabilityModel;
 import blang.annotations.DefineFactor;
 import blang.factors.Factor;
 import blang.mcmc.Move;
+import blang.mcmc.RealVariableMHProposal;
 import blang.mcmc.RealVariableOverRelaxedSlice;
 import blang.mcmc.RealVariablePeskunTypeMove;
 import blang.processing.Processor;
@@ -30,33 +32,26 @@ import briefj.run.Results;
 public class BjpsPrototype implements Runnable
 {
   @Option
-  public double priorRate = 1.0;
+  public double priorRate = 10.0;
   
   @Option
-  public double priorShape = 2.0;
+  public double priorShape = 20.0;
   
   @Option
-  public int nVariables = 1;
+  public int nVariables = 100;
   
   @Option
-  public double trajectoryLength = 1.0;
+  public double trajectoryLength = 10;
   
   @Option
-  public int nIters = 10_000;
+  public int nIters = 1000;
   
   @Option
   public Random mainRandom = new Random(1);
   
   @Option
-  public Method method = Method.NAIVE_MH;
+  public Method method = Method.GIBBS;
   enum Method { GIBBS, BJPS, NAIVE_MH }
-  
-  private ModelSpec model = null;
-
-  private void init()
-  {
-    model = new ModelSpec(method == Method.BJPS);
-  }
   
   private class ModelSpec
   {
@@ -67,23 +62,14 @@ public class BjpsPrototype implements Runnable
     public final Gamma<?> prior = Gamma.on(brownianBridge.globalVariance).withRateShape(priorRate, priorShape);
     
     @DefineFactor
-    public final Factor brownianLikelihood;
+    public final Factor brownianLikelihood = brownianBridge.fullFactor();
     
-    @DefineFactor 
-    public final List<? extends Factor> localFactors;
-    
-    @DefineFactor
-    public final Factor priorNormalizationFactor;
-    
-    private ModelSpec(boolean useFullSlice)
+    private ModelSpec()
     {
-      brownianLikelihood = useFullSlice ? null : brownianBridge.fullFactor();
-      localFactors = useFullSlice ? brownianBridge.localCollisionFactors() : null;
-      priorNormalizationFactor = useFullSlice ? brownianBridge.normalizationFactor() : null;
       this.graphicalModel = ProbabilityModel.parse(this);
     }
     
-    private Move sliceSamplerOnGlobalVariance()
+    private Move mhSamplerOnGlobalVariance()
     {
       return graphicalModel.instantiateOperator(model.brownianBridge.globalVariance, RealVariableOverRelaxedSlice.class);
     }
@@ -96,12 +82,43 @@ public class BjpsPrototype implements Runnable
       runner.options.maxTrajectoryLength = trajectoryLength;
       runner.options.samplingRandom = mainRandom;
       runner.options.rfOptions.collectRate = 0.0;
-      runner.options.silent = true;
+//      runner.options.silent = true;
       return runner;
     }
   }
   
-  OutputManager out = new OutputManager();
+//  public void test()
+//  {
+//    Object dep1 = null, dep2 = null;
+//    Normal(mean(dep1, dep2), var(dep1));
+//  }
+//  
+//  Variable<Double> mean(Object dep1, Object dep2)
+//  {
+//    return () -> 5.0;
+//  }
+//  
+//  Variable<Double> var(Object dep1)
+//  {
+//    return () -> 6.0;
+//  }
+//  
+//  void Normal(Variable<? extends Number> mean, Variable<? extends Number> variance)
+//  {
+//    
+//  }
+//  
+//  interface Variable<T> {
+//    T get();
+//  }
+  
+  private OutputManager out = new OutputManager();
+  
+  private ModelSpec model = null;
+  private void init()
+  {
+    model = new ModelSpec();
+  }
   
   @Override
   public void run()
@@ -116,7 +133,7 @@ public class BjpsPrototype implements Runnable
       else if (method == Method.BJPS)
         estimates = bjps();
       else if (method == Method.NAIVE_MH)
-        estimates = fullSlice();
+        estimates = naiveMH();
       else
         throw new RuntimeException();
       
@@ -165,10 +182,14 @@ public class BjpsPrototype implements Runnable
     
     for (int i = 0; i < nIters; i++)
     {
-      model.sliceSamplerOnGlobalVariance().execute(mainRandom);
+      // sample the Gaussian field
       LocalRFRunner bps = model.bpsOnBrownianBridge();
       bps.addMomentRayProcessor();
       bps.run();
+      
+      // sample top-level parameter
+      model.mhSamplerOnGlobalVariance().execute(mainRandom);
+      
       // collect
       sum     += bps.momentRayProcessor.sum.getCount(monitored);
       sumSqrs += bps.momentRayProcessor.sumSq.getCount(monitored);
@@ -182,7 +203,7 @@ public class BjpsPrototype implements Runnable
     return result;
   }
   
-  private Estimates fullSlice()
+  private Estimates naiveMH()
   {
     Estimates result = new Estimates();
     SummaryStatistics monitorStatistics = new SummaryStatistics();
@@ -198,11 +219,11 @@ public class BjpsPrototype implements Runnable
        * and the second one commented. The error does not go to zero.
        */
       
-  //    factory.excludeNodeMove(RealVariablePeskunTypeMove.class); 
-      factory.excludeNodeMove(RealVariableOverRelaxedSlice.class);
+      factory.excludeNodeMove(RealVariablePeskunTypeMove.class); 
+//      factory.excludeNodeMove(RealVariableOverRelaxedSlice.class);
     }
     
-    factory.excludeNodeProcessor(RealVariableProcessor.class);
+//    factory.excludeNodeProcessor(RealVariableProcessor.class);
     factory.mcmcOptions.nMCMCSweeps = nIters;
     factory.mcmcOptions.burnIn = 0;
     factory.mcmcOptions.thinningPeriod = 1;
@@ -234,8 +255,12 @@ public class BjpsPrototype implements Runnable
     
     for (int i = 0; i < nIters; i++)
     {
-      model.sliceSamplerOnGlobalVariance().execute(mainRandom);
+      // sample the Gaussian field
       model.bpsOnBrownianBridge().run();
+      
+      // sample the top-level parameter
+      model.mhSamplerOnGlobalVariance().execute(mainRandom);
+      
       // collect
       monitorStatistics.addValue(model.brownianBridge.variables.get(monitoredVariable()).getValue());
       result.processParam(i);
