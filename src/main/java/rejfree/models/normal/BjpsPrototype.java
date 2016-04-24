@@ -3,24 +3,21 @@ package rejfree.models.normal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.function.Function;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
+
+import com.google.common.base.Stopwatch;
 
 import rejfree.local.LocalRFRunner;
 import rejfree.models.normal.BrownianBridge.LocalFactorModelSpec;
 import bayonet.distributions.Gamma;
-import blang.MCMCAlgorithm;
-import blang.MCMCFactory;
 import blang.MCMCFactory.MCMCOptions;
 import blang.ProbabilityModel;
 import blang.annotations.DefineFactor;
 import blang.factors.Factor;
 import blang.mcmc.Move;
-import blang.mcmc.RealVariableMHProposal;
 import blang.mcmc.RealVariableOverRelaxedSlice;
-import blang.mcmc.RealVariablePeskunTypeMove;
-import blang.processing.Processor;
 import blang.processing.ProcessorContext;
 import blang.variables.RealVariable;
 import blang.variables.RealVariableProcessor;
@@ -46,7 +43,10 @@ public class BjpsPrototype implements Runnable
   public double trajectoryLength = 10;
   
   @Option
-  public int nIters = 20000;
+  public int maxNIters = Integer.MAX_VALUE;
+  
+  @Option
+  public double maxWallClockSec = 60.0;
   
   @Option
   public Random mainRandom = new Random(1);
@@ -148,13 +148,14 @@ public class BjpsPrototype implements Runnable
 
     void processParam(int i)
     {
-      processor.process(new ProcessorContext(i, null, options));
+      if (maxNIters < Integer.MAX_VALUE) // otherwise the output will not get printed anyways and may become very large
+        processor.process(new ProcessorContext(i, null, options));
     }
   }
   
   MCMCOptions options = new MCMCOptions();
   {
-    options.nMCMCSweeps = nIters;
+    options.nMCMCSweeps = maxNIters;
   }
   
   private Estimates bjps()
@@ -167,7 +168,7 @@ public class BjpsPrototype implements Runnable
     
     RealVariable monitored = model.brownianBridge.variables.get(monitoredVariable());
     
-    for (int i = 0; i < nIters; i++)
+    while (moreIterationsNeeded())
     {
       // sample the Gaussian field
       LocalRFRunner bps = model.bpsOnBrownianBridge();
@@ -181,7 +182,7 @@ public class BjpsPrototype implements Runnable
       sum     += bps.momentRayProcessor.sum.getCount(monitored);
       sumSqrs += bps.momentRayProcessor.sumSq.getCount(monitored);
       T       += bps.momentRayProcessor.currentTime;
-      result.processParam(i);
+      result.processParam(curIter);
     }
     
     result.mean = sum / T;
@@ -190,13 +191,31 @@ public class BjpsPrototype implements Runnable
     return result;
   }
   
+  int curIter = 0;
+  Stopwatch watch = null;
+  private boolean moreIterationsNeeded()
+  {
+    if (watch == null)
+      watch = Stopwatch.createStarted();
+    
+    curIter++;
+    
+    if (curIter >= maxNIters)
+      return false;
+    
+    if (watch.elapsed(TimeUnit.MILLISECONDS) > 1000.0 * maxWallClockSec)
+      return false;
+    
+    return true;
+  }
+
   private Estimates naive()
   {
     Estimates result = new Estimates();
     
     SummaryStatistics monitorStatistics = new SummaryStatistics();
     
-    for (int i = 0; i < nIters; i++)
+    while (moreIterationsNeeded())
     {
       // sample the Gaussian field
       for (Move move : model.sliceSamplerOnLatentGaussianVariables())
@@ -207,64 +226,22 @@ public class BjpsPrototype implements Runnable
       
       // collect
       monitorStatistics.addValue(model.brownianBridge.variables.get(monitoredVariable()).getValue());
-      result.processParam(i);
+      result.processParam(curIter);
     }
     
     result.mean = monitorStatistics.getMean();
     result.variance = monitorStatistics.getVariance();
     
     return result;
-    
-    
-//    Estimates result = new Estimates();
-//    SummaryStatistics monitorStatistics = new SummaryStatistics();
-//    
-//    MCMCFactory factory = new MCMCFactory();
-//    
-//    {
-//      /*
-//       * Found bug in bayonet: the sampler RealVariableOverRelaxedSlice 
-//       * appears not to be pi-invariant in this model. 
-//       * 
-//       * To reproduce the problem make the first line below uncommented 
-//       * and the second one commented. The error does not go to zero.
-//       */
-//      
-//      factory.excludeNodeMove(RealVariablePeskunTypeMove.class); 
-////      factory.excludeNodeMove(RealVariableOverRelaxedSlice.class);
-//    }
-//    
-////    factory.excludeNodeProcessor(RealVariableProcessor.class);
-//    factory.mcmcOptions.nMCMCSweeps = nIters;
-//    factory.mcmcOptions.burnIn = 0;
-//    factory.mcmcOptions.thinningPeriod = 1;
-//    factory.mcmcOptions.random = mainRandom;
-//    factory.addProcessor(new Processor() {
-//      @Override
-//      public void process(ProcessorContext context)
-//      {
-//        monitorStatistics.addValue(model.brownianBridge.variables.get(monitoredVariable()).getValue());
-//        result.processParam(context.getMcmcIteration());
-//      }
-//    });
-//    
-//    MCMCAlgorithm algo = factory.build(model.graphicalModel);
-//    algo.run();
-//    
-//    result.mean = monitorStatistics.getMean();
-//    result.variance = monitorStatistics.getVariance();
-//    
-//    return result;
   }
 
-  
   private Estimates gibbs()
   {
     Estimates result = new Estimates();
     
     SummaryStatistics monitorStatistics = new SummaryStatistics();
     
-    for (int i = 0; i < nIters; i++)
+    while (moreIterationsNeeded())
     {
       // sample the Gaussian field
       model.bpsOnBrownianBridge().run();
@@ -274,7 +251,7 @@ public class BjpsPrototype implements Runnable
       
       // collect
       monitorStatistics.addValue(model.brownianBridge.variables.get(monitoredVariable()).getValue());
-      result.processParam(i);
+      result.processParam(curIter);
     }
     
     result.mean = monitorStatistics.getMean();
