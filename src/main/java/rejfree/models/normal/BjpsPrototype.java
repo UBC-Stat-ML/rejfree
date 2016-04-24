@@ -1,5 +1,6 @@
 package rejfree.models.normal;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
@@ -7,6 +8,7 @@ import java.util.function.Function;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 import rejfree.local.LocalRFRunner;
+import rejfree.models.normal.BrownianBridge.LocalFactorModelSpec;
 import bayonet.distributions.Gamma;
 import blang.MCMCAlgorithm;
 import blang.MCMCFactory;
@@ -44,14 +46,14 @@ public class BjpsPrototype implements Runnable
   public double trajectoryLength = 10;
   
   @Option
-  public int nIters = 1000;
+  public int nIters = 20000;
   
   @Option
   public Random mainRandom = new Random(1);
   
   @Option
-  public Method method = Method.GIBBS;
-  enum Method { GIBBS, BJPS, NAIVE_MH }
+  public Method method = Method.NAIVE;
+  enum Method { GIBBS, BJPS, NAIVE }
   
   private class ModelSpec
   {
@@ -69,9 +71,19 @@ public class BjpsPrototype implements Runnable
       this.graphicalModel = ProbabilityModel.parse(this);
     }
     
-    private Move mhSamplerOnGlobalVariance()
+    private Move sliceSamplerOnGlobalVariance()
     {
       return graphicalModel.instantiateOperator(model.brownianBridge.globalVariance, RealVariableOverRelaxedSlice.class);
+    }
+    
+    private List<Move> sliceSamplerOnLatentGaussianVariables()
+    {
+      List<Move> result = new ArrayList<>();
+      LocalFactorModelSpec localFactorModelSpec = brownianBridge.localFactorModelSpec();
+      ProbabilityModel gm = ProbabilityModel.parse(localFactorModelSpec);
+      for (RealVariable var : brownianBridge.variables)
+        result.add(gm.instantiateOperator(var, RealVariableOverRelaxedSlice.class));
+      return result;
     }
     
     private LocalRFRunner bpsOnBrownianBridge()
@@ -82,35 +94,10 @@ public class BjpsPrototype implements Runnable
       runner.options.maxTrajectoryLength = trajectoryLength;
       runner.options.samplingRandom = mainRandom;
       runner.options.rfOptions.collectRate = 0.0;
-//      runner.options.silent = true;
+      runner.options.silent = true;
       return runner;
     }
   }
-  
-//  public void test()
-//  {
-//    Object dep1 = null, dep2 = null;
-//    Normal(mean(dep1, dep2), var(dep1));
-//  }
-//  
-//  Variable<Double> mean(Object dep1, Object dep2)
-//  {
-//    return () -> 5.0;
-//  }
-//  
-//  Variable<Double> var(Object dep1)
-//  {
-//    return () -> 6.0;
-//  }
-//  
-//  void Normal(Variable<? extends Number> mean, Variable<? extends Number> variance)
-//  {
-//    
-//  }
-//  
-//  interface Variable<T> {
-//    T get();
-//  }
   
   private OutputManager out = new OutputManager();
   
@@ -132,8 +119,8 @@ public class BjpsPrototype implements Runnable
         estimates = gibbs();
       else if (method == Method.BJPS)
         estimates = bjps();
-      else if (method == Method.NAIVE_MH)
-        estimates = naiveMH();
+      else if (method == Method.NAIVE)
+        estimates = naive();
       else
         throw new RuntimeException();
       
@@ -188,7 +175,7 @@ public class BjpsPrototype implements Runnable
       bps.run();
       
       // sample top-level parameter
-      model.mhSamplerOnGlobalVariance().execute(mainRandom);
+      model.sliceSamplerOnGlobalVariance().execute(mainRandom);
       
       // collect
       sum     += bps.momentRayProcessor.sum.getCount(monitored);
@@ -203,47 +190,71 @@ public class BjpsPrototype implements Runnable
     return result;
   }
   
-  private Estimates naiveMH()
+  private Estimates naive()
   {
     Estimates result = new Estimates();
+    
     SummaryStatistics monitorStatistics = new SummaryStatistics();
     
-    MCMCFactory factory = new MCMCFactory();
-    
+    for (int i = 0; i < nIters; i++)
     {
-      /*
-       * Found bug in bayonet: the sampler RealVariableOverRelaxedSlice 
-       * appears not to be pi-invariant in this model. 
-       * 
-       * To reproduce the problem make the first line below uncommented 
-       * and the second one commented. The error does not go to zero.
-       */
+      // sample the Gaussian field
+      for (Move move : model.sliceSamplerOnLatentGaussianVariables())
+        move.execute(mainRandom);
       
-      factory.excludeNodeMove(RealVariablePeskunTypeMove.class); 
-//      factory.excludeNodeMove(RealVariableOverRelaxedSlice.class);
+      // sample the top-level parameter
+      model.sliceSamplerOnGlobalVariance().execute(mainRandom);
+      
+      // collect
+      monitorStatistics.addValue(model.brownianBridge.variables.get(monitoredVariable()).getValue());
+      result.processParam(i);
     }
-    
-//    factory.excludeNodeProcessor(RealVariableProcessor.class);
-    factory.mcmcOptions.nMCMCSweeps = nIters;
-    factory.mcmcOptions.burnIn = 0;
-    factory.mcmcOptions.thinningPeriod = 1;
-    factory.mcmcOptions.random = mainRandom;
-    factory.addProcessor(new Processor() {
-      @Override
-      public void process(ProcessorContext context)
-      {
-        monitorStatistics.addValue(model.brownianBridge.variables.get(monitoredVariable()).getValue());
-        result.processParam(context.getMcmcIteration());
-      }
-    });
-    
-    MCMCAlgorithm algo = factory.build(model.graphicalModel);
-    algo.run();
     
     result.mean = monitorStatistics.getMean();
     result.variance = monitorStatistics.getVariance();
     
     return result;
+    
+    
+//    Estimates result = new Estimates();
+//    SummaryStatistics monitorStatistics = new SummaryStatistics();
+//    
+//    MCMCFactory factory = new MCMCFactory();
+//    
+//    {
+//      /*
+//       * Found bug in bayonet: the sampler RealVariableOverRelaxedSlice 
+//       * appears not to be pi-invariant in this model. 
+//       * 
+//       * To reproduce the problem make the first line below uncommented 
+//       * and the second one commented. The error does not go to zero.
+//       */
+//      
+//      factory.excludeNodeMove(RealVariablePeskunTypeMove.class); 
+////      factory.excludeNodeMove(RealVariableOverRelaxedSlice.class);
+//    }
+//    
+////    factory.excludeNodeProcessor(RealVariableProcessor.class);
+//    factory.mcmcOptions.nMCMCSweeps = nIters;
+//    factory.mcmcOptions.burnIn = 0;
+//    factory.mcmcOptions.thinningPeriod = 1;
+//    factory.mcmcOptions.random = mainRandom;
+//    factory.addProcessor(new Processor() {
+//      @Override
+//      public void process(ProcessorContext context)
+//      {
+//        monitorStatistics.addValue(model.brownianBridge.variables.get(monitoredVariable()).getValue());
+//        result.processParam(context.getMcmcIteration());
+//      }
+//    });
+//    
+//    MCMCAlgorithm algo = factory.build(model.graphicalModel);
+//    algo.run();
+//    
+//    result.mean = monitorStatistics.getMean();
+//    result.variance = monitorStatistics.getVariance();
+//    
+//    return result;
   }
 
   
@@ -259,7 +270,7 @@ public class BjpsPrototype implements Runnable
       model.bpsOnBrownianBridge().run();
       
       // sample the top-level parameter
-      model.mhSamplerOnGlobalVariance().execute(mainRandom);
+      model.sliceSamplerOnGlobalVariance().execute(mainRandom);
       
       // collect
       monitorStatistics.addValue(model.brownianBridge.variables.get(monitoredVariable()).getValue());

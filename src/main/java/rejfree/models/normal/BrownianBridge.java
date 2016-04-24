@@ -257,12 +257,14 @@ public class BrownianBridge
     return globalVariance.getValue() * t * (1.0 - t);
   }
 
-  public Object localFactorModelSpec()
+  public LocalFactorModelSpec localFactorModelSpec()
   {
-    return new Object() 
-    {
-      @DefineFactor
-      public final List<CollisionFactor> factors = localCollisionFactors();
-    };
+    return new LocalFactorModelSpec();
+  }
+  
+  public class LocalFactorModelSpec
+  {
+    @DefineFactor
+    public final List<CollisionFactor> factors = localCollisionFactors();
   }
 }
