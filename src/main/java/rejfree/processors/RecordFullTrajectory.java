@@ -13,7 +13,7 @@ import briefj.Indexer;
 
 /**
  * 
- * @deprecated Use SaveRaysProcessor for more control and effiency.
+ * @deprecated Use SaveRaysProcessor for more control and efficiency.
  * @author Alexandre Bouchard (alexandre.bouchard@gmail.com)
  *
  */
