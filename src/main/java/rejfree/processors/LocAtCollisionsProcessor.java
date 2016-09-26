@@ -19,6 +19,7 @@ public class LocAtCollisionsProcessor implements RayProcessor
   public final LinkedHashSet<RealVariable> variables;
   public final List<DoubleMatrix> locationsAtCollisions = new ArrayList<>();
   private double prevTime = -1;
+  private LocalRFSampler sampler = null;
 
   public LocAtCollisionsProcessor(RealVariable ... variables)
   {
@@ -33,6 +34,8 @@ public class LocAtCollisionsProcessor implements RayProcessor
   @Override
   public void init(LocalRFSampler sampler)
   {
+    this.sampler = sampler;
+    update(0.0);
   }
 
   @Override
@@ -45,6 +48,13 @@ public class LocAtCollisionsProcessor implements RayProcessor
     if (!variables.contains(var))
       return;
     
+    update(time);
+    
+    prevTime = time;
+  }
+  
+  private void update(double time) 
+  {
     DoubleMatrix current = new DoubleMatrix(variables.size());
     int i = 0;
     for (RealVariable aVar : variables)
@@ -54,8 +64,6 @@ public class LocAtCollisionsProcessor implements RayProcessor
       i++;
     }
     locationsAtCollisions.add(current);
-    
-    prevTime = time;
   }
   
 }
