@@ -20,6 +20,7 @@ import com.google.common.base.Stopwatch;
 
 import rejfree.RFSamplerOptions;
 import rejfree.RFSamplerOptions.RefreshmentMethod;
+import rejfree.models.normal.PlotExample;
 import rejfree.StaticUtils;
 import rejfree.processors.RayProcessor;
 import bayonet.distributions.Exponential;
@@ -110,7 +111,11 @@ public class LocalRFSampler
       if (rfOptions.refreshmentMethod == RefreshmentMethod.RESTRICTED)
         newVelocity = StaticUtils.uniformOnUnitBall(variables.size(), rand);
       else
-        newVelocity = StaticUtils.standardMultivariateNormal(variables.size(), rand);
+      {
+        newVelocity = PlotExample.hackInitMode ? 
+         new DoubleMatrix(new double[]{0.0,1.0}) : 
+         StaticUtils.standardMultivariateNormal(variables.size(), rand);
+      }
     }
     else
     {
@@ -221,6 +226,7 @@ public class LocalRFSampler
     Stopwatch watch = maxTimeMilli == Long.MAX_VALUE ? null : Stopwatch.createStarted();
 
     globalVelocityRefreshment(rand, 0.0, true);
+    
     for (RayProcessor rayProc : rayProcessors)
       rayProc.init(this);
 

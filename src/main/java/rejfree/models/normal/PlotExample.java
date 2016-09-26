@@ -41,7 +41,7 @@ public class PlotExample implements Runnable
   
   public class Spec
   {
-    RealVariable variable0 = new RealVariable(1), variable1 = new RealVariable(1);
+    RealVariable variable0 = new RealVariable(1), variable1 = new RealVariable(0);
     
     @DefineFactor
     public NormalFactor factor = NormalFactor.newBinaryFactor(precision(), variable0, variable1);
@@ -81,10 +81,13 @@ public class PlotExample implements Runnable
     
     return plot;
   }
+  
+  public static boolean hackInitMode = false;
 
   @Override
   public void run()
   {
+    hackInitMode = true;
     PlotContour densityPlot = densityPlot();
     densityPlot.toPDF(Results.getFileInResultFolder("density.pdf"));
     
