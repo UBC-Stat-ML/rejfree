@@ -1,7 +1,7 @@
 Summary 
 -------
 
-Implementation of the [Bouncy Particle Sampler (BPS) algorithm](http://www.stat.ubc.ca/~bouchard/bps/) (focussing on the priority queue-based local BPS algorithm). 
+Implementation of the [Bouncy Particle Sampler (BPS) algorithm](https://arxiv.org/pdf/1510.02451v3.pdf) (focussing on the priority queue-based local BPS algorithm). 
 
 Please include the following citation:
 
