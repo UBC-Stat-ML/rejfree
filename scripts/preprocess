@@ -1,6 +1,0 @@
-#!/bin/bash
-
-source runJava.sh
-SOURCE="${BASH_SOURCE[0]}"
-
-runJava $SOURCE rejfree.spatial.PreprocessData $@
